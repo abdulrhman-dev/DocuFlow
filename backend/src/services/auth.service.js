@@ -8,6 +8,10 @@ class AuthService {
     
     static async login(email, password) 
     {
+        const users = await User.findAll();
+        // Added this line to check if seed ran correctly or not
+        // TODO: remove this line when everything becomes stable. 
+        console.log("USERS: ", users);
         const user = await User.findOne({ where: { email } });
 
         if (!user) {
