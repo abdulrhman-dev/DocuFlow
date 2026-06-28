@@ -1,6 +1,6 @@
 const corOptions = {
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-}
+  origin: process.env.ORIGIN,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+};
 
 module.exports = corOptions;

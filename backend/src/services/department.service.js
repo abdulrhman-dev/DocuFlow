@@ -84,6 +84,8 @@ class DepartmentService
         department.affairsEmployeeId = affairsEmployeeId || department.affairsEmployeeId;
 
         await department.save();
+
+        return department;
     }
 };
 

@@ -1,0 +1,14 @@
+- Responsiveness 
+    - Arabic direction in draft is incorrect
+- Document Preview
+- Validations
+- Invalidate query after modifications
+    - me-instances
+- Incorrect understanding of stageId in frontend
+- Incorrect user id passed to createRequest
+- Investigate respondToRequest
+- Missing rejectionReason column in requests
+- If the session is invalid it doesn't automatically sign the user out.
+- Change document view method.
+- Change password doesn't have validation & errors.
+- Customize views based on role.

@@ -26,14 +26,14 @@ departmentRouter.get(
 departmentRouter.post(
     '/',
     authenticate,
-    authorizeRoles('administrator'),
+    authorizeRoles(['administrator']),
     departmentController.createDepartment
 );
 
 departmentRouter.patch(
     '/:departmentId',
     authenticate,
-    authorizeRoles('administrator'),
+    authorizeRoles(['administrator']),
     departmentController.updateDepartment
 );
 

@@ -1,5 +1,15 @@
 require("./config/env.js");
 
+const path = require("path");
+const fs = require("fs");
+// To make sure that me.route.js has valid folders for uploading
+fs.mkdirSync(path.join(__dirname, "../public/static/avatars"), {
+  recursive: true,
+});
+fs.mkdirSync(path.join(__dirname, "../public/templates"), {
+  recursive: true,
+});
+
 const app = require("./app.js");
 const db = require("./models/index.js");
 
@@ -10,7 +20,7 @@ async function main() {
 
   await db.sequelize.authenticate();
   await db.sequelize.sync({
-    force: true 
+    force: false,
   });
 
   console.log("Database is connected");

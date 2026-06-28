@@ -1,15 +1,16 @@
-const { sequelize } = require('../models')
-const { Workflow, Stage, Template } = require('../models');
-const SequelizeQueryBuilder = require('../utils/SequelizeQueryBuilder');
-const AppError = require('../errors/AppError');
-const withTransaction = require('../utils/withTransaction');
-const ar = require('../translations/ar');
+const { sequelize } = require("../models");
+const { Workflow, Stage, Template } = require("../models");
+const SequelizeQueryBuilder = require("../utils/SequelizeQueryBuilder");
+const AppError = require("../errors/AppError");
+const withTransaction = require("../utils/withTransaction");
+const ar = require("../translations/ar");
 
-const { validate: validateWorkflow } = require("../validators/workflow.validate");
-
+const {
+  validate: validateWorkflow,
+} = require("../validators/workflow.validate");
 
 class WorkflowService {
-  static validRoles = ['professor', 'department_manager', 'administrator'];
+  static validRoles = ["professor", "department_manager", "administrator"];
 
   static roleFilter = (role) => {
     return {
@@ -17,25 +18,25 @@ class WorkflowService {
       as: "filterByRole",
       where: {
         stageOrder: 1,
-        role: role
+        role: role,
       },
       required: true,
-      attributes: []
-    }
-  }
+      attributes: [],
+    };
+  };
 
   static includeStages = {
     model: Stage,
-    as: 'stages',
+    as: "stages",
     seperate: true,
-    order: [['stageOrder', 'ASC']],
-  }
+    order: [["stageOrder", "ASC"]],
+  };
 
   static async getAllWorkflows(query) {
     const queryBuilder = new SequelizeQueryBuilder(query);
     const filter = queryBuilder.filter().sort().attributes().get();
 
-    filter.include = []
+    filter.include = [];
 
     if (query.role) {
       const roleFilter = WorkflowService.roleFilter(query.role);
@@ -46,7 +47,7 @@ class WorkflowService {
     filter.include.push(WorkflowService.includeStages);
 
     const workflows = await Workflow.findAll(filter);
-    return workflows
+    return workflows;
   }
 
   static async getWorkflow(workflowId, query) {
@@ -68,26 +69,29 @@ class WorkflowService {
     validateWorkflow({ title, description, stages: stagesInput });
 
     const cb = async (transaction) => {
-
-      const workflow = await Workflow.create({ title, description }, { transaction });
+      const workflow = await Workflow.create(
+        { title, description },
+        { transaction },
+      );
 
       const stageRecords = [];
 
       for (const stageInput of stagesInput) {
-
         const { title, stageOrder, role, templateIds } = stageInput;
 
         const stage = await Stage.create(
           { title, stageOrder, role, workflowId: workflow.id },
-          { transaction }
+          { transaction },
         );
 
         const templates = await Template.findAll({
           where: { id: templateIds },
-          transaction
+          transaction,
         });
 
-        if (templates.length !== templateIds.length) {
+        const ids = templateIds || [];
+
+        if (templates.length !== ids.length) {
           throw new AppError(ar.workflow.invalidTemplateIds(title), 400);
         }
 
@@ -96,14 +100,11 @@ class WorkflowService {
       }
 
       return workflow;
-    }
+    };
 
-    if (transaction)
-      return await cb(transaction);
-    else
-      return await withTransaction(cb);
+    if (transaction) return await cb(transaction);
+    else return await withTransaction(cb);
   }
 }
 
 module.exports = WorkflowService;
-

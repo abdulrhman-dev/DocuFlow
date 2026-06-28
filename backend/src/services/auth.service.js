@@ -1,49 +1,44 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { User } = require('../models');
-const AppError = require('../errors/AppError');
-const ar = require('../translations/ar');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { User } = require("../models");
+const AppError = require("../errors/AppError");
+const ar = require("../translations/ar");
 
 class AuthService {
-    
-    static async login(email, password) 
-    {
-        const users = await User.findAll();
-        // Added this line to check if seed ran correctly or not
-        // TODO: remove this line when everything becomes stable. 
-        console.log("USERS: ", users);
-        const user = await User.findOne({ where: { email } });
+  static async login(email, password) {
+    const users = await User.findAll();
+    // Added this line to check if seed ran correctly or not
+    const user = await User.findOne({ where: { email } });
 
-        if (!user) {
-            throw new AppError(ar.auth.invalidEmailOrPassword, 401);
-        }
+    if (!user) {
+      throw new AppError(ar.auth.invalidEmailOrPassword, 401);
+    }
 
-        if(!(await user.comparePassword(password))){
-            throw new AppError(ar.auth.invalidEmailOrPassword, 401);
-        }
+    if (!(await user.comparePassword(password))) {
+      throw new AppError(ar.auth.invalidEmailOrPassword, 401);
+    }
 
-        const payload = user.toJSON();
+    const payload = user.toJSON();
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
-        
-        return token;
-    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN,
+    });
 
-    static async register(userData) 
-    {
-        const { email } = userData;
+    return token;
+  }
 
-        if (await User.findOne({ where: { email } })) 
-        {
-            throw new AppError(ar.auth.emailAlreadyExists, 400);
-        }
+  static async register(userData) {
+    const { email } = userData;
 
-        const user = await User.create(userData);
-        user.password = undefined
+    if (await User.findOne({ where: { email } })) {
+      throw new AppError(ar.auth.emailAlreadyExists, 400);
+    }
 
-        return user;
-    };
+    const user = await User.create(userData);
+    user.password = undefined;
 
-};
+    return user;
+  }
+}
 
 module.exports = AuthService;

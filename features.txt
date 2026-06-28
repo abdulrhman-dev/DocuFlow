@@ -1,0 +1,7 @@
+- createTemplate is unused create an admin user that uses these functionalities. 
+- manage the url of the avatars for users.
+- there's no respondedAt or completedAt field, so timing data for approval/rejection isn't captured.
+- prevent XSS attacks
+- notifications
+- auto-save drafts
+- admin

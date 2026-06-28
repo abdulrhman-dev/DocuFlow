@@ -44,12 +44,11 @@ class TemplateService
     {
         const template = await Template.findByPk(id);
 
-        console.log(typeof template.schema);
+        if(!template)
+            throw new AppError(ar.template.notFound, 404);
 
         template.schema = optionalize(template.schema);
 
-        if(!template)
-            throw new AppError(ar.template.notFound, 404);
 
         return template;
     }
@@ -73,7 +72,8 @@ class TemplateService
             throw new AppError(ar.template.invalidUiSchema(errors.join(', ')), 400);
         }
 
-        template.update(data);
+        await template.update(data);
+
         return template;
     }
 

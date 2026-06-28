@@ -1,102 +1,97 @@
-'use strict';
+"use strict";
 
-const { Model, DataTypes } = require('sequelize');
+const { Model, DataTypes } = require("sequelize");
 
 const RequestSchema = {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
 
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
+  instanceId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 
-    instanceId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
+  stageId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 
-    stageId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 
-    userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
+  assignedToUserId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
 
-    assignedToUserId: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-    },
+  note: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
 
-    note: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
+  status: {
+    type: DataTypes.ENUM("draft", "pending", "approved", "rejected"),
+    allowNull: false,
+  },
 
-    status: {
-        type: DataTypes.ENUM('draft', 'pending', 'approved', 'rejected'),
-        allowNull: false,
-    },
-
-    sentAt: {
-        type: DataTypes.DATE,
-        allowNull: true,
-    }
+  sentAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  // rejectionReason: { type: DataTypes.TEXT, allowNull: true },
 };
 
 module.exports = (sequelize) => {
+  class Request extends Model {
+    static associate(models) {
+      Request.belongsTo(models.WorkflowInstance, {
+        foreignKey: "instanceId",
+        as: "instance",
+      });
 
-    class Request extends Model {
-        static associate(models){
+      Request.belongsTo(models.Stage, {
+        foreignKey: "stageId",
+        as: "stage",
+      });
 
-            Request.belongsTo(models.WorkflowInstance, {
-                foreignKey: 'instanceId',
-                as: 'instance'
-            });
+      Request.belongsTo(models.User, {
+        foreignKey: "userId",
+        as: "user",
+      });
 
-            Request.belongsTo(models.Stage, {
-                foreignKey: 'stageId',
-                as: 'stage'
-            });
+      Request.belongsTo(models.User, {
+        foreignKey: "assignedToUserId",
+        as: "assignee",
+      });
 
-            Request.belongsTo(models.User, {
-                foreignKey: 'userId',
-                as: 'user'
-            });
+      Request.belongsToMany(models.User, {
+        through: models.Access,
+        foreignKey: "requestId",
+      });
 
-            Request.belongsTo(models.User, {
-                foreignKey: "assignedToUserId",
-                as: "assignee"
-            });
+      Request.hasMany(models.Document, {
+        foreignKey: "requestId",
+        as: "documents",
+      });
+    }
+  }
 
-            Request.belongsToMany(models.User, {
-                through: models.Access,
-                foreignKey: "requestId"          
-            });
+  Request.init(RequestSchema, {
+    sequelize,
+    modelName: "Request",
+    timestamps: true,
+  });
 
-            Request.hasMany(models.Document, {
-                foreignKey: 'requestId',
-                as: 'documents'
-            });
-        }
-    };
+  Request.beforeUpdate((request, options) => {
+    if (request.status === "pending" && !request.sentAt) {
+      request.sentAt = new Date();
+    }
+  });
 
-    Request.init(RequestSchema, {
-        sequelize,
-        modelName: 'Request',
-        timestamps: true
-    });
-
-    Request.beforeUpdate((request, options) => {
-        if (request.status === 'pending' && !request.sentAt) {
-            request.sentAt = new Date();
-        }
-    });
-
-    return Request;
-}
-
-
-
+  return Request;
+};

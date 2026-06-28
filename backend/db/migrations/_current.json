@@ -1,0 +1,62 @@
+{
+    "tables": {
+        "Accesses": {
+            "tableName": "Accesses",
+            "indexes": []
+        },
+        "Activities": {
+            "tableName": "Activities",
+            "indexes": []
+        },
+        "Conditions": {
+            "tableName": "Conditions",
+            "indexes": []
+        },
+        "Departments": {
+            "tableName": "Departments",
+            "indexes": []
+        },
+        "Documents": {
+            "tableName": "Documents",
+            "indexes": []
+        },
+        "Requests": {
+            "tableName": "Requests",
+            "indexes": []
+        },
+        "Stages": {
+            "tableName": "Stages",
+            "indexes": {
+                "4c1fc49d12fa31e1c7969e09f168cc6305f7bb2b": {
+                    "unique": true,
+                    "fields": [
+                        "workflowId",
+                        "stageOrder"
+                    ],
+                    "name": "stages_workflow_id_stage_order",
+                    "options": {
+                        "indexName": "stages_workflow_id_stage_order",
+                        "indicesType": "UNIQUE"
+                    }
+                }
+            }
+        },
+        "Templates": {
+            "tableName": "Templates",
+            "indexes": []
+        },
+        "Users": {
+            "tableName": "Users",
+            "indexes": []
+        },
+        "Workflows": {
+            "tableName": "Workflows",
+            "indexes": []
+        },
+        "WorkflowInstances": {
+            "tableName": "WorkflowInstances",
+            "indexes": []
+        }
+    },
+    "revision": 1
+}
