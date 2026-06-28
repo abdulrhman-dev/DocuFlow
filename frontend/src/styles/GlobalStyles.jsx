@@ -115,7 +115,7 @@ body {
   color: var(--color-grey-700);
   direction: rtl;
   text-align: right;
-
+  background-color: var(--color-grey-50); 
   transition: color 0.3s, background-color 0.3s;
   min-height: 100vh;
   line-height: 1.5;
@@ -151,7 +151,6 @@ textarea:focus,
 select:focus {
   outline: 2px solid var(--color-brand-600);
   outline-offset: -1px;
-  outline: none;
 }
 
 button:has(svg) {

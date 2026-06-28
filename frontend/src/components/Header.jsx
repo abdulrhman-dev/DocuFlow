@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Button from "@components/Button";
 import UserAvatar from "@components/UserAvatar";
 import BurgerMenu from "@components/BurgerMenu";
+import DarkModeToggle from "@components/DarkModeToggle";
 import { translator as t } from "@data/translations/ar";
 
 const StyledHeader = styled.header`
@@ -49,6 +50,7 @@ function Header() {
           <HiPlus />
           {t.workflow.startNew}
         </Button>
+        <DarkModeToggle />
         <UserAvatar />
       </HeaderRight>
     </StyledHeader>

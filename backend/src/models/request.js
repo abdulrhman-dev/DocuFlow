@@ -43,7 +43,7 @@ const RequestSchema = {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  // rejectionReason: { type: DataTypes.TEXT, allowNull: true },
+  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
 };
 
 module.exports = (sequelize) => {

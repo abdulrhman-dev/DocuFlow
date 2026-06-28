@@ -5,3 +5,5 @@
 - notifications
 - auto-save drafts
 - admin
+    - insure one dep. manager for each dep. & one affairs.
+- multiple professors in one request/instance

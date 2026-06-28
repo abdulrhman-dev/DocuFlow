@@ -19,7 +19,7 @@ async function createRequest(req, res) {
 }
 
 async function updateRequest(req, res) {
-  const { status, note, assignedTo } = req.body;
+  const { status, note, assignedTo, rejectionReason } = req.body;
 
   const request = await RequestService.getRequestById(req.params.id);
 
@@ -44,7 +44,11 @@ async function updateRequest(req, res) {
       assignedTo,
     );
   } else if (accessLevel === "respond") {
-    updatedRequest = await RequestService.respondToRequest(request, status);
+    updatedRequest = await RequestService.respondToRequest(
+      request,
+      status,
+      rejectionReason,
+    );
   } else {
     throw new AppError(ar.request.noPermissionToUpdate, 403);
   }

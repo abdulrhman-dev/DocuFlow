@@ -110,8 +110,8 @@ const Empty = styled.div`
 function RequestDetails() {
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get("request");
-  const { patchRequest } = usePatchRequest(requestId);
   const navigate = useNavigate();
+  const { patchRequest } = usePatchRequest(requestId);
   const { request, isPending: isLoadingRequest } = useRequestData({
     requestId,
   });
@@ -119,7 +119,8 @@ function RequestDetails() {
   function respondToRequest(status) {
     patchRequest(
       { id: request.id, request: { status } },
-      { onSuccess: () => navigate(`/`) }
+      { onSuccess: () => { navigate("/requests/drafts") } }
+
     );
   }
 

@@ -13,7 +13,8 @@
 - condition.controller doesn't have anyone who needs it..poor soul.
 - Cors only allows one origin.
 - Added validation for sort query when fetching requests.
-
-
-
-
+- Fixed avatar system
+- Added dark mode
+- Fixed: Stepper of stages in instances. 
+- Add rejectionReason column and fixed rejection
+- Fixed respondToRequest the userIds weren't correct (at all).

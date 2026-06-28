@@ -17,12 +17,18 @@ function ActionButtons({
 }) {
   return (
     <ButtonsBox>
-      <Button $variation="primary" onClick={onSave}>
+      <Button $variation="primary" onClick={(e) => {
+        e.preventDefault();
+        onSave()
+      }}>
         {textSave}
       </Button>
       <Button
         $variation={isCancelDanger === true ? "danger" : "secondary"}
-        onClick={onCancel}
+        onClick={(e) => {
+          e.preventDefault();
+          onCancel();
+        }}
       >
         {textCancel}
       </Button>

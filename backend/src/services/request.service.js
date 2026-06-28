@@ -165,7 +165,9 @@ class RequestService {
           transaction,
         });
         assignedToUserId =
-          department?.manager?.id || department?.affairsEmployee?.id || null;
+          department?.manager?.id ||
+          department?.affairsEmployee?.id ||
+          instance.userId;
       }
 
       const request = await Request.create(
@@ -302,9 +304,24 @@ class RequestService {
       }
 
       if (secondNextStage) {
+        // let nextUserId;
+
+        // if (nextStage.role == "professor") {
+        //   nextUserId = instance.userId;
+        // } else {
+        //   const user = await User.findOne({
+        //     where: {
+        //       role: nextStage.role,
+        //       departmentId: instance.departmentId,
+        //     },
+        //   });
+
+        //   nextUserId = user.id;
+        // }
+
         await RequestService.createRequest(
           instance.id,
-          null,
+          "",
           instance.userId,
           transaction,
         );
@@ -379,7 +396,7 @@ class RequestService {
           await RequestService.createRequest(
             instance.id,
             "",
-            instance.userId,
+            request.assignedToUserId,
             t,
           );
         } else {
