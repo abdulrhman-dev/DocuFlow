@@ -8,12 +8,13 @@ import RequestTag from "./RequestTag";
 import Spinner from "@components/Spinner";
 import ActionButtons from "@components/ActionButtons";
 import TextArea from "@components/inputs/TextArea";
-import UserAvatar from "@components/UserAvatar";
+import UserAvatar, { Avatar } from "@components/UserAvatar";
 import Heading from "@components/Heading";
 
 import useRequestData from "../request/hooks/useRequestData";
 import { usePatchRequest } from "../request/hooks/usePatchRequest";
 import { translator as t } from "@data/translations/ar";
+import { getProfilePictureUrl } from "@features/user/utils";
 
 const Container = styled.form`
   display: flex;
@@ -128,6 +129,7 @@ function RequestDetails() {
     return <Empty>{t.request.clickRequest}</Empty>;
   if (isLoadingRequest) return <Spinner />;
 
+
   return (
     <Container>
       <Content>
@@ -141,9 +143,9 @@ function RequestDetails() {
 
         <RequestId>#{request?.id}</RequestId>
         <UserRow>
-          <UserAvatar src={request?.avatar || "/default-user.jpg"} />
+          <Avatar src={getProfilePictureUrl(request?.user?.profilePicture)} />
           <UserInfo>
-            <UserName>{request?.senderName || "Shehab Khaled"}</UserName>
+            <UserName>{`${request.user.firstName} ${request.user.lastName}`}</UserName>
             <UserDate>
               {t.time.on}{" "}
               {format(new Date(request.sentAt), "EEEE d MMMM yyyy, h:mm a", {

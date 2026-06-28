@@ -35,6 +35,12 @@ class RequestService {
     attributes: ["id"],
   };
 
+  static includeUser = {
+    model: User,
+    as: "user",
+    attributes: ["firstName", "lastName", "profilePicture"],
+  };
+
   static includeTemplateIds = {
     model: Stage,
     as: "stage",
@@ -69,7 +75,11 @@ class RequestService {
     const queryBuilder = new SequelizeQueryBuilder(query);
     const filter = queryBuilder.filter().sort().attributes().get();
     filter.where = { ...filter.where, ...whereExtra };
-    filter.include = [this.includeWorkflowTitle, this.includeDocuments];
+    filter.include = [
+      this.includeWorkflowTitle,
+      this.includeDocuments,
+      this.includeUser,
+    ];
 
     const requests = await Request.findAll(filter);
     return requests.map((req) => this._transformRequest(req));
@@ -102,7 +112,11 @@ class RequestService {
   static async getRequest(requestId, query, user) {
     const queryBuilder = new SequelizeQueryBuilder(query);
     const filter = queryBuilder.attributes().get();
-    filter.include = [this.includeWorkflowTitle, this.includeDocuments];
+    filter.include = [
+      this.includeWorkflowTitle,
+      this.includeDocuments,
+      this.includeUser,
+    ];
 
     const request = await Request.findByPk(requestId, filter);
     if (!request) throw new AppError(ar.request.notFound, 404);
