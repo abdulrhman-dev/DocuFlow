@@ -18,3 +18,4 @@
 - Fixed: Stepper of stages in instances. 
 - Add rejectionReason column and fixed rejection
 - Fixed respondToRequest the userIds weren't correct (at all).
+- Added Rejection Reason modal.

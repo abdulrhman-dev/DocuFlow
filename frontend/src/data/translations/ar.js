@@ -36,6 +36,7 @@ export const translator = {
     noNote: "لا يوجد ملاحظات",
     approved: "لقد وافقت على هذا الطلب",
     rejected: "لقد رفضت هذا الطلب",
+    rejectionReason: "أضف سبب الرفض",
   },
 
   status: {

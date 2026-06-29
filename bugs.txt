@@ -1,14 +1,9 @@
 Now
-- Incorrect user id passed to createRequest
-
 - Invalidate query after modifications
     - me-instances
-- If the session is invalid it doesn't automatically sign the user out.
 - Customize views based on role.
-- Change password doesn't have validation & errors.
 - Fix Arabic frontend issues.
-- Fix Dark Mode colors
-- Investigate respondToRequest
+- Fix Dark Mode colors (add dark mode toggle in sign in page)
 
 Later
 - Responsiveness 
@@ -16,5 +11,7 @@ Later
 - Document Preview
 - Change document view method.
 - Validations
+- Change password doesn't have validation & errors.
 - For current instances page make rejected/finished instances have a special UI to indicate its status.
 - Last stage shouldn't navigate to drafts.
+- If the session is invalid it doesn't automatically sign the user out.

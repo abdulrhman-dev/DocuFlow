@@ -8,13 +8,18 @@ import RequestTag from "./RequestTag";
 import Spinner from "@components/Spinner";
 import ActionButtons from "@components/ActionButtons";
 import TextArea from "@components/inputs/TextArea";
+import Button from "@components/Button";
 import UserAvatar, { Avatar } from "@components/UserAvatar";
 import Heading from "@components/Heading";
+import Modal from "@components/Modal"
 
 import useRequestData from "../request/hooks/useRequestData";
 import { usePatchRequest } from "../request/hooks/usePatchRequest";
 import { translator as t } from "@data/translations/ar";
 import { getProfilePictureUrl } from "@features/user/utils";
+import { useState } from "react";
+
+
 
 const Container = styled.form`
   display: flex;
@@ -116,10 +121,10 @@ function RequestDetails() {
     requestId,
   });
 
-  function respondToRequest(status) {
+  function respondToRequest(status, rejectionReason) {
     patchRequest(
-      { id: request.id, request: { status } },
-      { onSuccess: () => { navigate("/requests/drafts") } }
+      { id: request.id, request: { status, rejectionReason, test: true, hello: "world" } },
+      { onSuccess: () => { if (!rejectionReason) navigate("/requests/drafts") } }
 
     );
   }
@@ -172,12 +177,9 @@ function RequestDetails() {
 
         <Footer className={!isPending ? "full-width" : ""}>
           {isPending ? (
-            <ActionButtons
-              onCancel={() => respondToRequest("rejected")}
+            <RequestActionButtons
               onSave={() => respondToRequest("approved")}
-              textCancel={t.actions.reject}
-              textSave={t.actions.approve}
-              isCancelDanger={true}
+              onCancel={(rejectionReason) => respondToRequest("rejected", rejectionReason)}
             />
           ) : (
             <StatusMessage $status={request?.status}>
@@ -186,8 +188,87 @@ function RequestDetails() {
           )}
         </Footer>
       </Content>
+
     </Container>
   );
+}
+
+
+
+const ButtonsBox = styled.div`
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-start;
+  gap: 1.2rem;
+`;
+
+function RequestActionButtons({
+  onCancel,
+  onSave,
+}) {
+  return (
+    <ButtonsBox>
+      <Button $variation="primary" onClick={(e) => {
+        e.preventDefault();
+        onSave()
+      }}>
+        {t.actions.approve}
+      </Button>
+      <Modal>
+        <Modal.Open opens={"request-rejection"}>
+          <Button
+            $variation={"danger"}
+            type="button"
+          >
+            {t.actions.reject}
+          </Button>
+        </Modal.Open>
+        <Modal.Window name="request-rejection">
+          <RejectionWindow handleReject={onCancel} />
+        </Modal.Window>
+      </Modal>
+
+    </ButtonsBox>
+  );
+}
+
+
+const RejectionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  padding-right: 1rem;
+  gap: 2rem;
+  width:  "50rem";
+  transition: width 0.3s;
+`;
+
+function RejectionWindow({ onClose, handleReject }) {
+  const [rejectionText, setRejectionText] = useState("");
+
+  const handleChange = (e) => {
+    setRejectionText(e.target.value);
+  }
+
+  return (
+    <RejectionContainer>
+      <TextArea
+        value={rejectionText}
+        placeholder={t.request.rejectionReason}
+        onChange={handleChange}
+        rows={2}
+      />
+      <ActionButtons
+        onCancel={() => onClose()}
+        onSave={() => {
+          handleReject(rejectionText);
+        }}
+        textCancel={t.actions.cancel}
+        textSave={t.actions.reject}
+        isCancelDanger={false}
+        isApproveDanger={true}
+      />
+    </RejectionContainer>
+  )
 }
 
 export default RequestDetails;
