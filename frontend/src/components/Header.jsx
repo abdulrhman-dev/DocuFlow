@@ -20,13 +20,13 @@ const StyledHeader = styled.header`
   gap: 2.4rem;
 `;
 
-const HeaderLeft = styled.div`
+const HeaderStart = styled.div`
   display: flex;
   align-items: center;
   gap: 1.6rem;
 `;
 
-const HeaderRight = styled.div`
+const HeaderEnd = styled.div`
   display: flex;
   align-items: center;
   gap: 1.6rem;
@@ -41,18 +41,18 @@ function Header() {
 
   return (
     <StyledHeader>
-      <HeaderLeft>
+      <HeaderStart>
         <BurgerMenu />
-      </HeaderLeft>
+      </HeaderStart>
 
-      <HeaderRight>
+      <HeaderEnd>
         <Button onClick={handleStartWorkflow}>
           <HiPlus />
           {t.workflow.startNew}
         </Button>
         <DarkModeToggle />
         <UserAvatar />
-      </HeaderRight>
+      </HeaderEnd>
     </StyledHeader>
   );
 }

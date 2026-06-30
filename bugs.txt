@@ -1,11 +1,3 @@
-Now
-- Invalidate query after modifications
-    - me-instances
-- Customize views based on role.
-- Fix Arabic frontend issues.
-- Fix Dark Mode colors (add dark mode toggle in sign in page)
-
-Later
 - Responsiveness 
     - Arabic direction in draft is incorrect
 - Document Preview
@@ -15,3 +7,7 @@ Later
 - For current instances page make rejected/finished instances have a special UI to indicate its status.
 - Last stage shouldn't navigate to drafts.
 - If the session is invalid it doesn't automatically sign the user out.
+- Invalidate query after modifications
+    - me-instances
+- Customize views based on role.
+

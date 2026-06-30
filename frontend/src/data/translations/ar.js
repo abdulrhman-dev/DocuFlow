@@ -102,11 +102,10 @@ export const translator = {
     enterEmail: "أدخل بريدك الإلكتروني",
     enterPassword: "أدخل كلمة المرور",
     selectRole: "اختر مهنتك",
-    enterPassword: "أدخل كلمة المرور",
     reenterPassword: "أعد كتابة كلمة المرور",
     enterFirstName: "أدخل اسمك الأول",
     enterLastName: "أدخل اسم العائلة",
-    selectRole: "اختر الدور",
+    // selectRole: "اختر الدور",
   },
 
   messages: {

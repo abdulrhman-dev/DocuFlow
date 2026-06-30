@@ -25,9 +25,10 @@ const ListItem = styled.li`
   }
 
   &.selected {
-    background-color: var(--color-brand-50);
-    border-left: 4px solid var(--color-brand-600);
+    background-color: var(--color-grey-100);
+    border-inline-start: 4px solid var(--color-brand-600);  
   }
+
 `;
 
 const SentAt = styled.span`

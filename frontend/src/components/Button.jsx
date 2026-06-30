@@ -8,7 +8,7 @@ const StyledButton = styled.button`
 
   padding: 1rem 1.6rem;
   background-color: var(--color-brand-600);
-  color: var(--color-grey-0);
+  color: var(--color-brand-100);
 
   border: none;
   border-radius: 5px;
@@ -45,6 +45,7 @@ const StyledButton = styled.button`
     props.$variation === "primary" &&
     css`
       background-color: var(--color-brand-700);
+      color: var(--color-gray-100)
       font-size: 1.6rem;
 
       &:hover {
@@ -56,6 +57,8 @@ const StyledButton = styled.button`
     props.$variation === "secondary" &&
     css`
       background-color: var(--color-blue-700);
+      color: var(--color-grey-0);
+
 
       &:hover {
         background-color: var(--color-blue-800);

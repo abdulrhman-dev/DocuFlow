@@ -15,42 +15,44 @@ import MyWorkflows from "@pages/MyWorkflows";
 import RequestsInbox from "@pages/RequestsInbox";
 import Requests from "@pages/Requests";
 
+import { translator as t } from "@data/translations/ar";
+
 function AppRoutes() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          element={
-            <ProtectedRoute>
-              <AuthProvider>
+      <AuthProvider>
+        <Routes>
+          <Route
+            element={
+              <ProtectedRoute>
                 <AppLayout />
-              </AuthProvider>
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate replace to="dashboard" />} />
-          <Route path="workflows">
-            <Route path="new" element={<StartNewWorkflow />} />
-            <Route path="my-workflows" element={<MyWorkflows />} />
-            <Route
-              path=":workflowId/instances/:instanceId/request/:requestId"
-              element={<NewRequest />}
-            />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate replace to="dashboard" />} />
+            <Route path="workflows">
+              <Route path="new" element={<StartNewWorkflow />} />
+              <Route path="my-workflows" element={<MyWorkflows />} />
+              <Route
+                path=":workflowId/instances/:instanceId/request/:requestId"
+                element={<NewRequest />}
+              />
+            </Route>
+            <Route path="requests">
+              <Route path="inbox" element={<RequestsInbox />} />
+              <Route path="submitted" element={<Requests filter="submitted" />} />
+              <Route path="drafts" element={<Requests filter="draft" />} />
+            </Route>
+            <Route path="settings" element={<Settings />} />
+            <Route path="dashboard" element={<Dashboard />} />
           </Route>
-          <Route path="requests">
-            <Route path="inbox" element={<RequestsInbox />} />
-            <Route path="submitted" element={<Requests filter="submitted" />} />
-            <Route path="drafts" element={<Requests filter="draft" />} />
-          </Route>
-          <Route path="settings" element={<Settings />} />
-          <Route path="dashboard" element={<Dashboard />} />
-        </Route>
 
-        <Route path="login" element={<Login />} />
-        <Route path="signup" element={<Signup />} />
-        <Route path="*" element={<h1>Page Not Fount</h1>} />
-      </Routes>
-    </BrowserRouter>
+          <Route path="login" element={<Login />} />
+          <Route path="signup" element={<Signup />} />
+          <Route path="*" element={<h1>{t.general.notFound}</h1>} />
+        </Routes >
+      </AuthProvider >
+    </BrowserRouter >
   );
 }
 

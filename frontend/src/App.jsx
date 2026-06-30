@@ -21,7 +21,14 @@ function App() {
         <ReactQueryDevtools initialIsOpen={false} />
         <GlobalStyles />
         <AppRoutes />
-        <Toaster />
+        <Toaster
+          toastOptions={{
+            style: {
+              background: "var(--toast-bg)",
+              color: "var(--toast-color)",
+            },
+          }}
+        />
       </QueryClientProvider>
     </DarkModeProvider>
   );
