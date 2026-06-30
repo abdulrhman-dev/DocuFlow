@@ -36,7 +36,7 @@ async function getDocumentPdf(req, res, next) {
   );
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", "attachment; filename=document.pdf");
+  res.setHeader("Content-Disposition", "inline; filename=document.pdf");
   res.setHeader("Content-Length", pdfBuffer.length);
   res.send(pdfBuffer);
 }

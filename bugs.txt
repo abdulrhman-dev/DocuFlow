@@ -9,5 +9,6 @@
 - If the session is invalid it doesn't automatically sign the user out.
 - Invalidate query after modifications
     - me-instances
-- Customize views based on role.
+    - activity log
+- Document Modal doesn't get filled automatically when there's already existing data.
 
