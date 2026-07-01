@@ -11,4 +11,4 @@
     - me-instances
     - activity log
 - Document Modal doesn't get filled automatically when there's already existing data.
-
+- access of file is not given to the next user
