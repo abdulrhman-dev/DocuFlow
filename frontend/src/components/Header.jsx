@@ -7,6 +7,7 @@ import UserAvatar from "@components/UserAvatar";
 import BurgerMenu from "@components/BurgerMenu";
 import DarkModeToggle from "@components/DarkModeToggle";
 import { translator as t } from "@data/translations/ar";
+import { useAuth } from "@context/AuthContext";
 
 const StyledHeader = styled.header`
   background-color: var(--color-grey-0);
@@ -39,6 +40,8 @@ function Header() {
     navigate("/workflows/new");
   };
 
+  const { user } = useAuth();
+
   return (
     <StyledHeader>
       <HeaderStart>
@@ -46,10 +49,14 @@ function Header() {
       </HeaderStart>
 
       <HeaderEnd>
-        <Button onClick={handleStartWorkflow}>
-          <HiPlus />
-          {t.workflow.startNew}
-        </Button>
+        {
+          user && user.role == "professor"
+          &&
+          <Button onClick={handleStartWorkflow}>
+            <HiPlus />
+            {t.workflow.startNew}
+          </Button>
+        }
         <DarkModeToggle />
         <UserAvatar />
       </HeaderEnd>
