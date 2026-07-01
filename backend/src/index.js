@@ -1,19 +1,19 @@
-require("./config/env.js");
+require('./config/env.js');
 
-const path = require("path");
-const fs = require("fs");
+const path = require('path');
+const fs = require('fs');
 // To make sure that me.route.js has valid folders for uploading
-fs.mkdirSync(path.join(__dirname, "../public/static/avatars"), {
+fs.mkdirSync(path.join(__dirname, '../public/static/avatars'), {
   recursive: true,
 });
-fs.mkdirSync(path.join(__dirname, "../public/templates"), {
+fs.mkdirSync(path.join(__dirname, '../public/templates'), {
   recursive: true,
 });
 
-const app = require("./app.js");
-const db = require("./models/index.js");
+const app = require('./app.js');
+const db = require('./models/index.js');
 
-const asyncListen = require("./utils/asyncListen.js");
+const asyncListen = require('./utils/asyncListen.js');
 
 async function main() {
   const port = parseInt(process.env.PORT || 3000);
@@ -23,12 +23,12 @@ async function main() {
     force: false,
   });
 
-  console.log("Database is connected");
+  console.log('Database is connected');
 
   await asyncListen(app, port);
   console.log(`Server is running on port ${port}`);
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error(err);
 });

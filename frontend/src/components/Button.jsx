@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components";
+import styled, { css } from 'styled-components';
 
 const StyledButton = styled.button`
   display: flex;
@@ -41,8 +41,8 @@ const StyledButton = styled.button`
     height: 1.6rem;
   }
 
-  ${(props) =>
-    props.$variation === "primary" &&
+  ${props =>
+    props.$variation === 'primary' &&
     css`
       background-color: var(--color-brand-700);
       color: var(--color-gray-100)
@@ -53,20 +53,19 @@ const StyledButton = styled.button`
       }
     `};
 
-  ${(props) =>
-    props.$variation === "secondary" &&
+  ${props =>
+    props.$variation === 'secondary' &&
     css`
       background-color: var(--color-blue-700);
       color: var(--color-grey-0);
-
 
       &:hover {
         background-color: var(--color-blue-800);
       }
     `};
 
-  ${(props) =>
-    props.$variation === "danger" &&
+  ${props =>
+    props.$variation === 'danger' &&
     css`
       background-color: var(--color-red-700);
 
@@ -79,6 +78,7 @@ const StyledButton = styled.button`
 function Button({ children, onClick, ...props }) {
   return (
     <StyledButton onClick={onClick} {...props}>
+      {props.icon ? props.icon : null}
       {children}
     </StyledButton>
   );

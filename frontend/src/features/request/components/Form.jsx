@@ -1,23 +1,24 @@
-import { useEffect, useState } from "react";
-import styled from "styled-components";
-import { JsonForms } from "@jsonforms/react";
-import { materialRenderers } from "@jsonforms/material-renderers";
+import { useEffect, useState } from 'react';
+import styled from 'styled-components';
+import { JsonForms } from '@jsonforms/react';
+import { materialRenderers } from '@jsonforms/material-renderers';
 
-import InputFieldRenderer from "@components/InputFieldRenderer";
-import ActionButtons from "@components/ActionButtons";
-import Button from "@components/Button";
+import InputFieldRenderer from '@components/InputFieldRenderer';
+import ActionButtons from '@components/ActionButtons';
+import Button from '@components/Button';
 
-import { InputFieldTester } from "../renderers/inputFieldTester";
-import useDocData from "../hooks/useDocData";
-import { usePatchDoc } from "../hooks/usePatchDoc";
-import DocumentPreview from "./DocumentPreview";
+import { InputFieldTester } from '../renderers/inputFieldTester';
+import useDocData from '../hooks/useDocData';
+import { usePatchDoc } from '../hooks/usePatchDoc';
+import DocumentPreview from './DocumentPreview';
 
-import { translator as t } from "@data/translations/ar";
+import { translator as t } from '@data/translations/ar';
+import DocxViewer from './DocxViewer';
 
 const Container = styled.div`
   display: flex;
   gap: 2rem;
-  width: ${(props) => (props.$isSideBySide ? "100rem" : "50rem")};
+  width: ${props => (props.$isSideBySide ? '100rem' : '50rem')};
   transition: width 0.3s;
 `;
 
@@ -55,7 +56,7 @@ function Form({ onClose, id }) {
         onSuccess: () => {
           onClose();
         },
-      }
+      },
     );
   }
 
@@ -66,15 +67,15 @@ function Form({ onClose, id }) {
       <FormSection>
         <div
           style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: "1rem",
+            display: 'flex',
+            justifyContent: 'flex-end',
+            marginBottom: '1rem',
           }}
         >
           <Button
             $variation="secondary"
             size="small"
-            onClick={() => setIsSideBySide((s) => !s)}
+            onClick={() => setIsSideBySide(s => !s)}
           >
             {isSideBySide ? t.documents.closePreview : t.documents.sideBySide}
           </Button>
@@ -106,7 +107,7 @@ function Form({ onClose, id }) {
 
       {isSideBySide && (
         <PreviewSection>
-          <DocumentPreview docId={id} />
+          <DocxViewer documentId={id} />
         </PreviewSection>
       )}
     </Container>
