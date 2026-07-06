@@ -116,7 +116,7 @@ function RequestDetails() {
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get("request");
   const navigate = useNavigate();
-  const { patchRequest } = usePatchRequest(requestId);
+  const { patchRequest, isPending: isResponding } = usePatchRequest(requestId);
   const { request, isPending: isLoadingRequest } = useRequestData({
     requestId,
   });
@@ -180,6 +180,7 @@ function RequestDetails() {
             <RequestActionButtons
               onSave={() => respondToRequest("approved")}
               onCancel={(rejectionReason) => respondToRequest("rejected", rejectionReason)}
+              isResponding={isResponding}
             />
           ) : (
             <StatusMessage $status={request?.status}>
@@ -205,10 +206,11 @@ const ButtonsBox = styled.div`
 function RequestActionButtons({
   onCancel,
   onSave,
+  isResponding,
 }) {
   return (
     <ButtonsBox>
-      <Button $variation="primary" onClick={(e) => {
+      <Button loading={isResponding} $variation="primary" onClick={(e) => {
         e.preventDefault();
         onSave()
       }}>
@@ -224,7 +226,7 @@ function RequestActionButtons({
           </Button>
         </Modal.Open>
         <Modal.Window name="request-rejection">
-          <RejectionWindow handleReject={onCancel} />
+          <RejectionWindow handleReject={onCancel} isResponding={isResponding} />
         </Modal.Window>
       </Modal>
 
@@ -242,7 +244,7 @@ const RejectionContainer = styled.div`
   transition: width 0.3s;
 `;
 
-function RejectionWindow({ onClose, handleReject }) {
+function RejectionWindow({ onClose, handleReject, isResponding }) {
   const [rejectionText, setRejectionText] = useState("");
 
   const handleChange = (e) => {
@@ -266,6 +268,7 @@ function RejectionWindow({ onClose, handleReject }) {
         textSave={t.actions.reject}
         isCancelDanger={false}
         isApproveDanger={true}
+        isSaving={isResponding}
       />
     </RejectionContainer>
   )

@@ -1,24 +1,27 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { User } = require("../models");
+const { eq } = require("drizzle-orm");
+const { db, schema } = require("../db");
 const AppError = require("../errors/AppError");
 const ar = require("../translations/ar");
 
+async function hashPassword(plain) {
+  return bcrypt.hash(plain, 8);
+}
+
 class AuthService {
   static async login(email, password) {
-    const users = await User.findAll();
-    // Added this line to check if seed ran correctly or not
-    const user = await User.findOne({ where: { email } });
+    const user = await db.query.users.findFirst({
+      where: eq(schema.users.email, email),
+    });
 
-    if (!user) {
-      throw new AppError(ar.auth.invalidEmailOrPassword, 401);
-    }
+    if (!user) throw new AppError(ar.auth.invalidEmailOrPassword, 401);
 
-    if (!(await user.comparePassword(password))) {
-      throw new AppError(ar.auth.invalidEmailOrPassword, 401);
-    }
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) throw new AppError(ar.auth.invalidEmailOrPassword, 401);
 
-    const payload = user.toJSON();
+    const payload = { ...user };
+    delete payload.password;
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN,
@@ -30,15 +33,24 @@ class AuthService {
   static async register(userData) {
     const { email } = userData;
 
-    if (await User.findOne({ where: { email } })) {
-      throw new AppError(ar.auth.emailAlreadyExists, 400);
-    }
+    const existing = await db.query.users.findFirst({
+      where: eq(schema.users.email, email),
+    });
+    if (existing) throw new AppError(ar.auth.emailAlreadyExists, 400);
 
-    const user = await User.create(userData);
-    user.password = undefined;
+    const toInsert = {
+      ...userData,
+      password: await hashPassword(userData.password),
+    };
+    const [inserted] = await db
+      .insert(schema.users)
+      .values(toInsert)
+      .returning();
 
-    return user;
+    delete inserted.password;
+    return inserted;
   }
 }
 
 module.exports = AuthService;
+module.exports.hashPassword = hashPassword;

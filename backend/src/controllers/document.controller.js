@@ -1,6 +1,5 @@
-const asyncDec = require('../utils/asyncDec.js');
-const DocumentService = require('../services/document.service');
-const document = require('../models/document.js');
+const asyncDec = require("../utils/asyncDec.js");
+const DocumentService = require("../services/document.service");
 
 async function getDocument(req, res, next) {
   const document = await DocumentService.getDocumentById(
@@ -9,7 +8,7 @@ async function getDocument(req, res, next) {
   );
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: document,
   });
 }
@@ -24,7 +23,7 @@ async function updateDocument(req, res, next) {
   );
 
   res.status(200).json({
-    status: 'success',
+    status: "success",
     data: document,
   });
 }
@@ -36,10 +35,10 @@ async function getDocumentPdf(req, res, next) {
   );
 
   res.setHeader(
-    'Content-Type',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   );
-  res.setHeader('Content-Disposition', 'inline; filename=document.docx');
+  res.setHeader("Content-Disposition", "inline; filename=document.docx");
   res.send(docBuffer);
 }
 

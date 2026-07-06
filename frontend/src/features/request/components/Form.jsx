@@ -38,16 +38,20 @@ const PreviewSection = styled.div`
 `;
 
 function Form({ onClose, id }) {
-  const [data, setData] = useState({});
+  const [data, setData] = useState(null);
   const [errors, setErrors] = useState([]);
   const [isSideBySide, setIsSideBySide] = useState(false);
-  const { patchDocument } = usePatchDoc(id);
+  const { patchDocument, isPending: isPatching } = usePatchDoc(id);
   const { doc, isPending } = useDocData({ docId: id });
 
   useEffect(() => {
-    if (isPending) return;
-    setData(doc.data);
-  }, [doc]);
+    if (!isPending && doc) {
+      setData(doc.data || {});
+    }
+  }, [doc, isPending]);
+
+
+
 
   function handleSaveForm() {
     patchDocument(
@@ -59,6 +63,7 @@ function Form({ onClose, id }) {
       },
     );
   }
+
 
   if (isPending) return;
 
@@ -80,28 +85,32 @@ function Form({ onClose, id }) {
             {isSideBySide ? t.documents.closePreview : t.documents.sideBySide}
           </Button>
         </div>
-        <JsonForms
-          schema={doc?.template?.schema}
-          uischema={doc?.template?.uiSchema}
-          data={data}
-          onChange={({ data, errors }) => {
-            setData(data);
-            setErrors(errors);
-          }}
-          renderers={[
-            ...materialRenderers,
-            {
-              tester: InputFieldTester,
-              renderer: InputFieldRenderer,
-            },
-          ]}
-        />
+        {
+          data &&
+          <JsonForms
+            schema={doc?.template?.schema}
+            uischema={doc?.template?.uiSchema}
+            data={data}
+            onChange={({ data, errors }) => {
+              setData(data);
+              setErrors(errors);
+            }}
+            renderers={[
+              ...materialRenderers,
+              {
+                tester: InputFieldTester,
+                renderer: InputFieldRenderer,
+              },
+            ]}
+          />
+        }
         <ActionButtons
           isCancelDanger={false}
           textSave={t.actions.save}
           textCancel={t.actions.cancel}
           onSave={handleSaveForm}
           onCancel={onClose}
+          isSaving={isPatching}
         />
       </FormSection>
 

@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const { eq } = require("drizzle-orm");
 const AppError = require("../errors/AppError");
-const { User } = require("../models");
+const { db, schema } = require("../db");
 const asyncDec = require("../utils/asyncDec");
 const ar = require("../translations/ar");
 
@@ -11,8 +12,7 @@ async function authenticate(req, res, next) {
     );
   }
 
-  let token = req.headers.authorization.split(" ")[1];
-
+  const token = req.headers.authorization.split(" ")[1];
   if (!token) {
     return next(
       new AppError(
@@ -29,8 +29,9 @@ async function authenticate(req, res, next) {
     return next(new AppError(`${ar.auth.unauthorized}: ${e.message}`, 401));
   }
 
-  console.log(decoded);
-  const user = await User.findByPk(decoded.id);
+  const user = await db.query.users.findFirst({
+    where: eq(schema.users.id, decoded.id),
+  });
 
   if (!user) {
     return next(
@@ -38,23 +39,19 @@ async function authenticate(req, res, next) {
     );
   }
 
+  // Strip password before attaching to req
+  delete user.password;
   req.user = user;
   next();
 }
 
 function authorizeRoles(allowedRoles) {
   return (req, res, next) => {
-    const userRole = req.user.role; // assuming req.user is populated by auth middleware
-
-    if (!allowedRoles.includes(userRole)) {
+    if (!allowedRoles.includes(req.user.role)) {
       return next(new AppError(ar.auth.unauthorized, 401));
     }
-
     next();
   };
 }
 
-module.exports = {
-  authenticate: asyncDec(authenticate),
-  authorizeRoles,
-};
+module.exports = { authenticate: asyncDec(authenticate), authorizeRoles };

@@ -20,3 +20,8 @@
 - Fixed respondToRequest the userIds weren't correct (at all).
 - Added Rejection Reason modal.
 - Added custom views based on role.
+- Fixed document preview (changed the system from converting and viewing pdfs to directly viewing the docx itself)
+- Fixed Modal now fills data if it exists.
+- Added a student table to the database and linked it with instances.
+- Added special stage that can have multiple professors that approve.
+

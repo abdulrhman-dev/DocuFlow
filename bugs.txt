@@ -1,7 +1,5 @@
 - Responsiveness 
     - Arabic direction in draft is incorrect
-- Document Preview
-- Change document view method.
 - Validations
 - Change password doesn't have validation & errors.
 - For current instances page make rejected/finished instances have a special UI to indicate its status.
@@ -10,5 +8,4 @@
 - Invalidate query after modifications
     - me-instances
     - activity log
-- Document Modal doesn't get filled automatically when there's already existing data.
 - access of file is not given to the next user
