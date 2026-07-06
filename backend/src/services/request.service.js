@@ -26,8 +26,13 @@ class RequestService {
   static ALLOWED_SORT_FIELDS = ["createdAt"];
 
   static _withDefault = {
-    instance: { with: { workflow: { columns: { title: true } } } },
-    documents: { columns: { id: true } },
+    instance: {
+      with: {
+        workflow: { columns: { title: true } },
+        documents: { columns: { id: true, stageOrder: true } },
+      },
+    },
+    stage: { columns: { stageOrder: true } },
     user: {
       columns: { firstName: true, lastName: true, profilePicture: true },
     },
@@ -37,6 +42,13 @@ class RequestService {
   static _transformRequest(request) {
     if (!request) return request;
     const plain = attachDerived(request);
+
+    const requestStageOrder = plain.stage?.stageOrder ?? 0;
+    const allInstanceDocs = plain.instance?.documents || [];
+    plain.documents = allInstanceDocs.filter(
+      (d) => d.stageOrder <= requestStageOrder,
+    );
+
     plain.workflowTitle = plain.instance?.workflow?.title || null;
     delete plain.instance;
     return plain;
@@ -225,6 +237,8 @@ class RequestService {
       });
       if (!instance) throw new AppError(ar.instance.notFound, 404);
 
+      const currentStageOrder = instance.stage.stageOrder;
+
       const [request] = await tx
         .insert(schema.requests)
         .values({
@@ -235,32 +249,49 @@ class RequestService {
         })
         .returning();
 
+      // Creator gets edit access on the request
       await tx.insert(schema.accesses).values({
         requestId: request.id,
         userId,
         accessLevel: "edit",
       });
 
+      // Idempotently create the documents required by the current stage
       const stageTemplateIds = (instance.stage.conditions || [])
         .map((c) => c.template?.id)
         .filter(Boolean);
 
       if (stageTemplateIds.length > 0) {
-        await tx.insert(schema.documents).values(
-          stageTemplateIds.map((tId) => ({
+        const existing = await tx.query.documents.findMany({
+          where: and(
+            eq(schema.documents.instanceId, instance.id),
+            eq(schema.documents.stageOrder, currentStageOrder),
+            inArray(schema.documents.templateId, stageTemplateIds),
+          ),
+          columns: { templateId: true },
+        });
+        const existingSet = new Set(existing.map((d) => d.templateId));
+        const toInsert = stageTemplateIds
+          .filter((tId) => !existingSet.has(tId))
+          .map((tId) => ({
             templateId: tId,
             data: null,
-            requestId: request.id,
-          })),
-        );
+            instanceId: instance.id,
+            stageOrder: currentStageOrder,
+          }));
+        if (toInsert.length) {
+          await tx.insert(schema.documents).values(toInsert);
+        }
       }
 
-      const createdDocuments = await tx.query.documents.findMany({
-        where: eq(schema.documents.requestId, request.id),
-        columns: { id: true },
+      // Return the visible documents for this request (up to current stage)
+      const instanceDocs = await tx.query.documents.findMany({
+        where: eq(schema.documents.instanceId, instance.id),
+        columns: { id: true, stageOrder: true },
       });
-
-      request.documents = createdDocuments;
+      request.documents = instanceDocs.filter(
+        (d) => d.stageOrder <= currentStageOrder,
+      );
       request.assignments = [];
       return attachDerived(request);
     };
@@ -316,8 +347,12 @@ class RequestService {
           throw new AppError(ar.request.cannotSendNoAssignments, 400);
         }
 
+        // Validate documents produced at the CURRENT stage of this instance
         const documents = await tx.query.documents.findMany({
-          where: eq(schema.documents.requestId, request.id),
+          where: and(
+            eq(schema.documents.instanceId, request.instanceId),
+            eq(schema.documents.stageOrder, fullInstance.stage.stageOrder),
+          ),
         });
         await DocumentService.validateDocumentsData(documents, false);
 

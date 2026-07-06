@@ -116,6 +116,7 @@ const workflowInstancesRelations = relations(
     }),
     requests: many(requests),
     professors: many(instanceProfessors),
+    documents: many(documents),
   }),
 );
 
@@ -131,16 +132,15 @@ const requestsRelations = relations(requests, ({ one, many }) => ({
     fields: [requests.userId],
     references: [users.id],
   }),
-  documents: many(documents),
   accesses: many(accesses),
   assignments: many(requestAssignments),
 }));
 
 // ---------- Document ----------
 const documentsRelations = relations(documents, ({ one }) => ({
-  request: one(requests, {
-    fields: [documents.requestId],
-    references: [requests.id],
+  instance: one(workflowInstances, {
+    fields: [documents.instanceId],
+    references: [workflowInstances.id],
   }),
   template: one(templates, {
     fields: [documents.templateId],
@@ -182,7 +182,7 @@ const supervisedStudentsRelations = relations(
   }),
 );
 
-// // ---------- RequestAssignments (Request <-> User junction) ----------
+// ---------- RequestAssignments (Request <-> User junction) ----------
 const requestAssignmentsRelations = relations(
   requestAssignments,
   ({ one }) => ({

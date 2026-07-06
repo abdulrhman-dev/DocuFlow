@@ -60,6 +60,7 @@ const ar = {
     invalidData: (errors) => `بيانات غير صالحة: ${errors}`,
     invalidStateMissingRequestId: "حالة مستند غير صالحة: معرف الطلب مفقود",
     templateFileUrlNotFound: "رابط ملف القالب غير موجود",
+    noPermissionToViewViaRequest: "ليس لديك إذن لعرض هذا المستند",
   },
 
   // Department messages

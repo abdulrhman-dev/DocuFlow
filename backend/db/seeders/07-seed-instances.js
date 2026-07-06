@@ -26,14 +26,14 @@ module.exports = {
       return;
     }
 
+    // Clear in FK-safe order
     await db.delete(schema.requestAssignments);
     await db.delete(schema.instanceProfessors);
-    await db.delete(schema.documents);
     await db.delete(schema.accesses);
+    await db.delete(schema.documents); // now depends only on WorkflowInstances
     await db.delete(schema.requests);
     await db.delete(schema.workflowInstances);
 
-    // Index professors by department for quick lookup of "peers"
     const professorsByDept = new Map();
     for (const p of professors) {
       const arr = professorsByDept.get(p.departmentId) || [];
@@ -64,8 +64,6 @@ module.exports = {
           })
           .returning();
 
-        // For "Thesis Registration" (the workflow with the multi-approval stage),
-        // include 2 peer professors from the same department when possible.
         if (workflow.title === "Thesis Registration") {
           const peers = (professorsByDept.get(professor.departmentId) || [])
             .filter((p) => p.id !== professor.id)
@@ -95,13 +93,15 @@ module.exports = {
           accessLevel: "edit",
         });
 
+        // Documents now live on the INSTANCE with a stageOrder
         const templatesForStage = (firstStage.conditions || [])
           .map((c) => c.template)
           .filter(Boolean);
         if (templatesForStage.length) {
           await db.insert(schema.documents).values(
             templatesForStage.map((t) => ({
-              requestId: request.id,
+              instanceId: instance.id,
+              stageOrder: firstStage.stageOrder,
               templateId: t.id,
               data: {
                 studentName: `Student for ${professor.firstName}`,
@@ -139,7 +139,7 @@ module.exports = {
     }
 
     console.log(
-      "Seeded instances, requests, assignments, and instance-professor links.",
+      "Seeded instances, requests, assignments, and instance-linked documents.",
     );
   },
 };

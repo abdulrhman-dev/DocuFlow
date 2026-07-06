@@ -1,4 +1,4 @@
-const { eq, and } = require("drizzle-orm");
+const { eq, and, gte, lte } = require("drizzle-orm");
 const { db, schema } = require("../db");
 const AppError = require("../errors/AppError");
 const DocxService = require("./docx.service");
@@ -6,25 +6,58 @@ const { ajv } = require("../utils/ajv");
 const optionalize = require("../utils/optionalize");
 const ar = require("../translations/ar");
 
+async function resolveDocumentAccess(document, user) {
+  // Pull every access row the user has on requests of this instance
+  const rows = await db
+    .select({
+      accessLevel: schema.accesses.accessLevel,
+      stageOrder: schema.stages.stageOrder,
+    })
+    .from(schema.accesses)
+    .innerJoin(
+      schema.requests,
+      eq(schema.requests.id, schema.accesses.requestId),
+    )
+    .innerJoin(schema.stages, eq(schema.stages.id, schema.requests.stageId))
+    .where(
+      and(
+        eq(schema.requests.instanceId, document.instanceId),
+        eq(schema.accesses.userId, user.id),
+      ),
+    );
+
+  let bestForView = null;
+  let editForThisStage = false;
+
+  for (const row of rows) {
+    // View permission: any access row for a request with stageOrder >= document's
+    if (row.stageOrder >= document.stageOrder) {
+      // Pick the strongest access level (edit > respond > read)
+      const rank = { edit: 3, respond: 2, read: 1 };
+      if (!bestForView || rank[row.accessLevel] > rank[bestForView]) {
+        bestForView = row.accessLevel;
+      }
+    }
+    // Edit permission: only when the user has 'edit' access at the document's stage
+    if (row.accessLevel === "edit" && row.stageOrder === document.stageOrder) {
+      editForThisStage = true;
+    }
+  }
+
+  return { view: bestForView, canEdit: editForThisStage };
+}
+
 class DocumentService {
   static async getDocumentById(user, documentId) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
-      with: {
-        template: { columns: { schema: true, uiSchema: true } },
-      },
+      with: { template: { columns: { schema: true, uiSchema: true } } },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    const access = await db.query.accesses.findFirst({
-      where: and(
-        eq(schema.accesses.requestId, document.requestId),
-        eq(schema.accesses.userId, user.id),
-      ),
-    });
-
-    if (!access?.accessLevel && user.role !== "administrator") {
-      throw new AppError(ar.document.noPermissionToView, 403);
+    if (user.role !== "administrator") {
+      const { view } = await resolveDocumentAccess(document, user);
+      if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
 
     document.template.schema = optionalize(document.template.schema);
@@ -35,16 +68,13 @@ class DocumentService {
     const template = await db.query.templates.findFirst({
       where: eq(schema.templates.id, document.templateId),
     });
-
     if (!template || !template.schema) {
       throw new AppError(ar.document.schemaNotFound, 400);
     }
-
     const schemaJson = optional
       ? optionalize(template.schema)
       : template.schema;
     const validate = ajv.compile(schemaJson);
-
     if (!validate(document.data)) {
       const errors = validate.errors.map(
         (err) => `${err.instancePath} ${err.message}`,
@@ -53,7 +83,7 @@ class DocumentService {
     }
   }
 
-  static async validateDocumentsData(documents, optional /* , transaction */) {
+  static async validateDocumentsData(documents, optional) {
     await Promise.all(
       documents.map((d) => DocumentService.validateDocumentData(d, optional)),
     );
@@ -62,26 +92,15 @@ class DocumentService {
   static async updateDocument(userId, documentId, data) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
-      with: {
-        request: {
-          columns: { id: true, status: true },
-          with: { user: { columns: { id: true } } },
-        },
-      },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
-    if (!document.requestId)
+    if (!document.instanceId) {
       throw new AppError(ar.document.invalidStateMissingRequestId, 400);
+    }
 
-    const access = await db.query.accesses.findFirst({
-      where: and(
-        eq(schema.accesses.requestId, document.requestId),
-        eq(schema.accesses.userId, userId),
-      ),
-    });
-
-    if (!access || access.accessLevel !== "edit")
-      throw new AppError(ar.document.noPermissionToUpdate, 403);
+    // Use a minimal user object so the resolver only needs `id`
+    const { canEdit } = await resolveDocumentAccess(document, { id: userId });
+    if (!canEdit) throw new AppError(ar.document.noPermissionToUpdate, 403);
 
     document.data = data;
     await DocumentService.validateDocumentData(document, true);
@@ -102,26 +121,14 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    const access = await db.query.accesses.findFirst({
-      where: and(
-        eq(schema.accesses.requestId, document.requestId),
-        eq(schema.accesses.userId, user.id),
-      ),
-    });
-
-    if (
-      !access ||
-      (access.accessLevel !== "read" &&
-        access.accessLevel !== "edit" &&
-        access.accessLevel !== "respond")
-    ) {
-      throw new AppError(ar.document.noPermissionToView, 403);
+    if (user.role !== "administrator") {
+      const { view } = await resolveDocumentAccess(document, user);
+      if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
 
     if (!document.template?.fileUrl) {
       throw new AppError(ar.document.templateFileUrlNotFound, 404);
     }
-
     return await DocxService.fillDocument(
       document.template.fileUrl,
       document.data,

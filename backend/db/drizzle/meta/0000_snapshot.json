@@ -1,5 +1,5 @@
 {
-  "id": "169d5483-a2a8-46e0-ae95-67084ae1c3a6",
+  "id": "e7acb1f1-0927-4e06-9f02-287e8cda98d2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -297,8 +297,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "requestId": {
-          "name": "requestId",
+        "instanceId": {
+          "name": "instanceId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stageOrder": {
+          "name": "stageOrder",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
@@ -333,12 +339,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "Documents_requestId_Requests_id_fk": {
-          "name": "Documents_requestId_Requests_id_fk",
+        "Documents_instanceId_WorkflowInstances_id_fk": {
+          "name": "Documents_instanceId_WorkflowInstances_id_fk",
           "tableFrom": "Documents",
-          "tableTo": "Requests",
+          "tableTo": "WorkflowInstances",
           "columnsFrom": [
-            "requestId"
+            "instanceId"
           ],
           "columnsTo": [
             "id"
@@ -533,6 +539,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "isMultiApproval": {
+          "name": "isMultiApproval",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "workflowId": {
           "name": "workflowId",
@@ -1107,6 +1120,80 @@
           "columns": [
             "requestId",
             "assignedToUserId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.InstanceProfessors": {
+      "name": "InstanceProfessors",
+      "schema": "",
+      "columns": {
+        "instanceId": {
+          "name": "instanceId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "userId": {
+          "name": "userId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "createdAt": {
+          "name": "createdAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updatedAt": {
+          "name": "updatedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "InstanceProfessors_instanceId_WorkflowInstances_id_fk": {
+          "name": "InstanceProfessors_instanceId_WorkflowInstances_id_fk",
+          "tableFrom": "InstanceProfessors",
+          "tableTo": "WorkflowInstances",
+          "columnsFrom": [
+            "instanceId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "InstanceProfessors_userId_Users_id_fk": {
+          "name": "InstanceProfessors_userId_Users_id_fk",
+          "tableFrom": "InstanceProfessors",
+          "tableTo": "Users",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "InstanceProfessors_instanceId_userId_pk": {
+          "name": "InstanceProfessors_instanceId_userId_pk",
+          "columns": [
+            "instanceId",
+            "userId"
           ]
         }
       },

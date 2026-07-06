@@ -41,7 +41,8 @@ CREATE TABLE "Documents" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"data" jsonb,
 	"templateId" integer NOT NULL,
-	"requestId" integer NOT NULL,
+	"instanceId" integer NOT NULL,
+	"stageOrder" integer NOT NULL,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -74,6 +75,7 @@ CREATE TABLE "Stages" (
 	"description" text,
 	"role" "role" NOT NULL,
 	"stageOrder" integer NOT NULL,
+	"isMultiApproval" boolean DEFAULT false NOT NULL,
 	"workflowId" integer NOT NULL,
 	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
 	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL
@@ -140,13 +142,21 @@ CREATE TABLE "RequestAssignments" (
 	CONSTRAINT "RequestAssignments_requestId_assignedToUserId_pk" PRIMARY KEY("requestId","assignedToUserId")
 );
 --> statement-breakpoint
+CREATE TABLE "InstanceProfessors" (
+	"instanceId" integer NOT NULL,
+	"userId" integer NOT NULL,
+	"createdAt" timestamp with time zone DEFAULT now() NOT NULL,
+	"updatedAt" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "InstanceProfessors_instanceId_userId_pk" PRIMARY KEY("instanceId","userId")
+);
+--> statement-breakpoint
 ALTER TABLE "Accesses" ADD CONSTRAINT "Accesses_requestId_Requests_id_fk" FOREIGN KEY ("requestId") REFERENCES "public"."Requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Accesses" ADD CONSTRAINT "Accesses_userId_Users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."Users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Activities" ADD CONSTRAINT "Activities_userId_Users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."Users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Conditions" ADD CONSTRAINT "Conditions_stageId_Stages_id_fk" FOREIGN KEY ("stageId") REFERENCES "public"."Stages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Conditions" ADD CONSTRAINT "Conditions_templateId_Templates_id_fk" FOREIGN KEY ("templateId") REFERENCES "public"."Templates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Documents" ADD CONSTRAINT "Documents_templateId_Templates_id_fk" FOREIGN KEY ("templateId") REFERENCES "public"."Templates"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "Documents" ADD CONSTRAINT "Documents_requestId_Requests_id_fk" FOREIGN KEY ("requestId") REFERENCES "public"."Requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "Documents" ADD CONSTRAINT "Documents_instanceId_WorkflowInstances_id_fk" FOREIGN KEY ("instanceId") REFERENCES "public"."WorkflowInstances"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "Stages" ADD CONSTRAINT "Stages_workflowId_Workflows_id_fk" FOREIGN KEY ("workflowId") REFERENCES "public"."Workflows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "WorkflowInstances" ADD CONSTRAINT "WorkflowInstances_workflowId_Workflows_id_fk" FOREIGN KEY ("workflowId") REFERENCES "public"."Workflows"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "WorkflowInstances" ADD CONSTRAINT "WorkflowInstances_stageId_Stages_id_fk" FOREIGN KEY ("stageId") REFERENCES "public"."Stages"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -160,5 +170,7 @@ ALTER TABLE "SupervisedStudents" ADD CONSTRAINT "SupervisedStudents_studentCode_
 ALTER TABLE "SupervisedStudents" ADD CONSTRAINT "SupervisedStudents_userId_Users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."Users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "RequestAssignments" ADD CONSTRAINT "RequestAssignments_requestId_Requests_id_fk" FOREIGN KEY ("requestId") REFERENCES "public"."Requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "RequestAssignments" ADD CONSTRAINT "RequestAssignments_assignedToUserId_Users_id_fk" FOREIGN KEY ("assignedToUserId") REFERENCES "public"."Users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "InstanceProfessors" ADD CONSTRAINT "InstanceProfessors_instanceId_WorkflowInstances_id_fk" FOREIGN KEY ("instanceId") REFERENCES "public"."WorkflowInstances"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "InstanceProfessors" ADD CONSTRAINT "InstanceProfessors_userId_Users_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."Users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "users_email_unique" ON "Users" USING btree ("email");--> statement-breakpoint
 CREATE UNIQUE INDEX "stages_workflow_order_unique" ON "Stages" USING btree ("workflowId","stageOrder");

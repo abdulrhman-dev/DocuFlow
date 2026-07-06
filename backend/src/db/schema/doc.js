@@ -5,7 +5,7 @@ const {
   jsonb,
   timestamp,
 } = require("drizzle-orm/pg-core");
-const { requests } = require("./request");
+const { workflowInstances } = require("./workflow_instance");
 const { templates } = require("./template");
 
 const documents = pgTable("Documents", {
@@ -14,9 +14,10 @@ const documents = pgTable("Documents", {
   templateId: integer("templateId")
     .notNull()
     .references(() => templates.id),
-  requestId: integer("requestId")
+  instanceId: integer("instanceId")
     .notNull()
-    .references(() => requests.id, { onDelete: "cascade" }),
+    .references(() => workflowInstances.id, { onDelete: "cascade" }),
+  stageOrder: integer("stageOrder").notNull(),
   createdAt: timestamp("createdAt", { withTimezone: true })
     .notNull()
     .defaultNow(),
