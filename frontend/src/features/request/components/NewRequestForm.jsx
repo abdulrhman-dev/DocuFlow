@@ -110,6 +110,9 @@ function NewRequestForm() {
 
   if (isPending) return <Spinner />;
 
+  const readDocuments = (request?.documents || []).filter(document => document?.stageOrder < request?.stage?.stageOrder);
+  const editDocuments = (request?.documents || []).filter(document => document?.stageOrder === request?.stage?.stageOrder);
+
   return (
     <Container onSubmit={handleSubmit(() => sendRequest(false))}>
       <Content>
@@ -120,11 +123,19 @@ function NewRequestForm() {
           {t.request.request} {selectedWorkflow?.title}
         </P>
 
-        {request?.documents?.length > 0 && (
+        {readDocuments.length > 0 && (
+          <RequestedDocsList
+            mode="read"
+            type="readDocuments"
+            documents={readDocuments}
+          />
+        )}
+
+        {editDocuments.length > 0 && (
           <RequestedDocsList
             mode="edit"
-            type="documents"
-            documents={request?.documents}
+            type="editDocuments"
+            documents={editDocuments}
           />
         )}
 

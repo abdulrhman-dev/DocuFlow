@@ -1,4 +1,4 @@
-const { eq, and, like } = require("drizzle-orm");
+const { eq, and, like, or } = require("drizzle-orm");
 const { db, schema } = require("../db");
 const AppError = require("../errors/AppError");
 const DrizzleQueryBuilder = require("../utils/DrizzleQueryBuilder");
@@ -107,7 +107,13 @@ class StudentService {
     builder.filter().sort().attributes();
 
     const extraConditions = [];
-    if (code) extraConditions.push(like(schema.students.code, `%${code}%`));
+    if (code)
+      extraConditions.push(
+        or(
+          like(schema.students.code, `%${code}%`),
+          like(schema.students.name, `%${code}%`),
+        ),
+      );
     if (name) extraConditions.push(like(schema.students.name, `%${name}%`));
     if (extraConditions.length) builder.andWhere(...extraConditions);
 
@@ -129,7 +135,10 @@ class StudentService {
 
     let students = rows.map((r) => r.student).filter(Boolean);
 
-    if (code) students = students.filter((s) => s.code.includes(code));
+    if (code)
+      students = students.filter(
+        (s) => s.code.includes(code) || s.name.includes(code),
+      );
     if (name) students = students.filter((s) => s.name.includes(name));
 
     // Reuse the same sort semantics as DrizzleQueryBuilder (single field, +/- prefix)

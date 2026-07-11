@@ -64,9 +64,16 @@ async function getRequest(req, res) {
   res.json({ status: "success", data: { request } });
 }
 
+async function deleteRequest(req, res) {
+  const { id } = req.params;
+  const result = await RequestService.deleteRequest(id, req.user);
+  res.json({ status: "success", data: result });
+}
+
 module.exports = {
   createRequest: asyncDec(createRequest),
   updateRequest: asyncDec(updateRequest),
   getAllRequests: asyncDec(getAllRequests),
   getRequest: asyncDec(getRequest),
+  deleteRequest: asyncDec(deleteRequest),
 };

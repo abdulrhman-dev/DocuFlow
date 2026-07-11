@@ -5,6 +5,7 @@ const DocxService = require("./docx.service");
 const { ajv } = require("../utils/ajv");
 const optionalize = require("../utils/optionalize");
 const ar = require("../translations/ar");
+const { collectReadonlyViolations } = require("../utils/readonlyEnforcer");
 
 async function resolveDocumentAccess(document, user) {
   // Pull every access row the user has on requests of this instance
@@ -92,15 +93,28 @@ class DocumentService {
   static async updateDocument(userId, documentId, data) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
+      with: { template: { columns: { uiSchema: true } } },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
     if (!document.instanceId) {
       throw new AppError(ar.document.invalidStateMissingRequestId, 400);
     }
 
-    // Use a minimal user object so the resolver only needs `id`
     const { canEdit } = await resolveDocumentAccess(document, { id: userId });
     if (!canEdit) throw new AppError(ar.document.noPermissionToUpdate, 403);
+
+    // Enforce readonly declared in the template's uiSchema
+    const violations = collectReadonlyViolations(
+      document.template?.uiSchema,
+      document.data,
+      data,
+    );
+    if (violations.length) {
+      throw new AppError(
+        ar.document.readonlyViolation(violations.join(", ")),
+        400,
+      );
+    }
 
     document.data = data;
     await DocumentService.validateDocumentData(document, true);
@@ -117,7 +131,11 @@ class DocumentService {
   static async getDocumentPdf(user, documentId) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
-      with: { template: { columns: { fileUrl: true } } },
+      with: {
+        template: {
+          columns: { fileUrl: true, title: true },
+        },
+      },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
@@ -129,10 +147,8 @@ class DocumentService {
     if (!document.template?.fileUrl) {
       throw new AppError(ar.document.templateFileUrlNotFound, 404);
     }
-    return await DocxService.fillDocument(
-      document.template.fileUrl,
-      document.data,
-    );
+
+    return await DocxService.fillDocument(document.template, document.data);
   }
 }
 

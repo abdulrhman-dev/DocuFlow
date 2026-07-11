@@ -5,6 +5,7 @@ const DrizzleQueryBuilder = require("../utils/DrizzleQueryBuilder");
 const withTransaction = require("../utils/withTransaction");
 const DocumentService = require("./document.service");
 const ar = require("../translations/ar");
+const { findPrefiller } = require("./document-prefillers");
 
 function computeRequestStatus(assignments) {
   if (!assignments || assignments.length === 0) return "draft";
@@ -29,7 +30,10 @@ class RequestService {
     instance: {
       with: {
         workflow: { columns: { title: true } },
-        documents: { columns: { id: true, stageOrder: true } },
+        documents: {
+          columns: { id: true, stageOrder: true, templateId: true },
+          with: { template: { columns: { title: true } } },
+        },
       },
     },
     stage: { columns: { stageOrder: true } },
@@ -45,9 +49,14 @@ class RequestService {
 
     const requestStageOrder = plain.stage?.stageOrder ?? 0;
     const allInstanceDocs = plain.instance?.documents || [];
-    plain.documents = allInstanceDocs.filter(
-      (d) => d.stageOrder <= requestStageOrder,
-    );
+    plain.documents = allInstanceDocs
+      .filter((d) => d.stageOrder <= requestStageOrder)
+      .map((d) => ({
+        id: d.id,
+        stageOrder: d.stageOrder,
+        templateId: d.templateId,
+        name: d.template?.title || null,
+      }));
 
     plain.workflowTitle = plain.instance?.workflow?.title || null;
     delete plain.instance;
@@ -222,20 +231,44 @@ class RequestService {
       return { nextStage, assignees: [instance.userId] };
     }
   }
-
   static async createRequest(instanceId, note, userId, transaction) {
     const cb = async (tx) => {
       const instance = await tx.query.workflowInstances.findFirst({
         where: eq(schema.workflowInstances.id, Number(instanceId)),
         with: {
+          student: true,
+          department: true,
+          professors: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  academicDegreeAndInstitution: true,
+                },
+              },
+            },
+          },
           stage: {
             with: {
-              conditions: { with: { template: { columns: { id: true } } } },
+              conditions: { with: { template: true } },
             },
           },
         },
       });
       if (!instance) throw new AppError(ar.instance.notFound, 404);
+
+      // Load the creator (needed for prefill supervisor list)
+      const creatorUser = await tx.query.users.findFirst({
+        where: eq(schema.users.id, userId),
+        columns: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          academicDegreeAndInstitution: true,
+        },
+      });
 
       const currentStageOrder = instance.stage.stageOrder;
 
@@ -256,42 +289,56 @@ class RequestService {
         accessLevel: "edit",
       });
 
-      // Idempotently create the documents required by the current stage
-      const stageTemplateIds = (instance.stage.conditions || [])
-        .map((c) => c.template?.id)
+      // Documents for this stage — one per attached template. Idempotent per
+      // (instanceId, stageOrder, templateId).
+      const templates = (instance.stage.conditions || [])
+        .map((c) => c.template)
         .filter(Boolean);
 
-      if (stageTemplateIds.length > 0) {
+      if (templates.length > 0) {
+        const templateIds = templates.map((t) => t.id);
         const existing = await tx.query.documents.findMany({
           where: and(
             eq(schema.documents.instanceId, instance.id),
             eq(schema.documents.stageOrder, currentStageOrder),
-            inArray(schema.documents.templateId, stageTemplateIds),
+            inArray(schema.documents.templateId, templateIds),
           ),
           columns: { templateId: true },
         });
         const existingSet = new Set(existing.map((d) => d.templateId));
-        const toInsert = stageTemplateIds
-          .filter((tId) => !existingSet.has(tId))
-          .map((tId) => ({
-            templateId: tId,
-            data: null,
+
+        const toInsert = [];
+        for (const tpl of templates) {
+          if (existingSet.has(tpl.id)) continue;
+          const prefiller = findPrefiller(tpl);
+          const initialData = prefiller
+            ? prefiller.buildInitialData({ instance, creatorUser })
+            : null;
+          toInsert.push({
+            templateId: tpl.id,
+            data: initialData,
             instanceId: instance.id,
             stageOrder: currentStageOrder,
-          }));
+          });
+        }
         if (toInsert.length) {
           await tx.insert(schema.documents).values(toInsert);
         }
       }
 
-      // Return the visible documents for this request (up to current stage)
       const instanceDocs = await tx.query.documents.findMany({
         where: eq(schema.documents.instanceId, instance.id),
-        columns: { id: true, stageOrder: true },
+        columns: { id: true, stageOrder: true, templateId: true },
+        with: { template: { columns: { title: true } } },
       });
-      request.documents = instanceDocs.filter(
-        (d) => d.stageOrder <= currentStageOrder,
-      );
+      request.documents = instanceDocs
+        .filter((d) => d.stageOrder <= currentStageOrder)
+        .map((d) => ({
+          id: d.id,
+          stageOrder: d.stageOrder,
+          templateId: d.templateId,
+          name: d.template?.title || null,
+        }));
       request.assignments = [];
       return attachDerived(request);
     };
@@ -606,6 +653,39 @@ class RequestService {
         with: { assignments: true },
       });
       return attachDerived(updated);
+    };
+
+    if (transaction) return await cb(transaction);
+    return await withTransaction(cb);
+  }
+
+  static async deleteRequest(requestId, user, transaction) {
+    const cb = async (tx) => {
+      const request = await tx.query.requests.findFirst({
+        where: eq(schema.requests.id, Number(requestId)),
+        with: { assignments: true },
+      });
+      if (!request) throw new AppError(ar.request.notFound, 404);
+
+      // Only the request's owner can delete it, and only while it's still a
+      // draft (i.e. no assignments have been created yet).
+      const isOwner = request.userId === user.id;
+      const isAdmin = user.role === "administrator";
+      const isDraft = !request.assignments || request.assignments.length === 0;
+
+      if (!isAdmin && !isOwner) {
+        throw new AppError(ar.request.noPermissionToDelete, 403);
+      }
+      if (!isAdmin && !isDraft) {
+        throw new AppError(ar.request.cannotDeleteNonDraft, 400);
+      }
+
+      // Accesses + RequestAssignments cascade automatically via FK constraints.
+      // Documents live on the instance, not the request — leave them alone.
+      await tx
+        .delete(schema.requests)
+        .where(eq(schema.requests.id, request.id));
+      return { id: request.id };
     };
 
     if (transaction) return await cb(transaction);

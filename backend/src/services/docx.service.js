@@ -1,23 +1,59 @@
 const Docxtemplater = require("docxtemplater");
 const PizZip = require("pizzip");
-const tmp = require("tmp-promise");
 const libre = require("libreoffice-convert");
-
 const fs = require("fs");
-const path = require("path");
+
+const { findPreprocessor } = require("./docx-preprocessors");
+const AppError = require("../errors/AppError");
+const ar = require("../translations/ar");
 
 class DocxService {
-  static async fillDocument(templatePath, data) {
+  /**
+   * Render a docx template.
+   *
+   * @param {object} template - the Template row (must include fileUrl/title so
+   *                            we can pick the right preprocessor).
+   * @param {object} data     - raw JSONForms document data (Template.data).
+   *
+   * The old signature `fillDocument(templatePath, data)` is preserved as a
+   * back-compat overload in case any legacy callers still pass a raw path;
+   * in that case we bypass preprocessing (dangerous for templated tables so
+   * we log a warning).
+   */
+  static async fillDocument(templateOrPath, data) {
+    let templatePath;
+    let template = null;
+
+    if (typeof templateOrPath === "string") {
+      // legacy call — no preprocessing available
+      templatePath = templateOrPath;
+      console.warn(
+        "[DocxService] fillDocument called with a raw path; no preprocessor applied.",
+      );
+    } else {
+      template = templateOrPath;
+      templatePath = template?.fileUrl;
+      if (!templatePath) {
+        throw new AppError(ar.document.templateFileUrlNotFound, 404);
+      }
+    }
+
+    const preprocessor = template ? findPreprocessor(template) : null;
+    const rendered =
+      preprocessor && typeof preprocessor.preprocess === "function"
+        ? preprocessor.preprocess(data || {})
+        : data || {};
+
     const content = fs.readFileSync(templatePath, "binary");
     const zip = new PizZip(content);
 
     const doc = new Docxtemplater(zip, {
       paragraphLoop: true,
       linebreaks: true,
+      nullGetter: () => "",
     });
 
-    doc.render(data || {});
-
+    doc.render(rendered);
     return doc.toBuffer();
   }
 
@@ -25,7 +61,7 @@ class DocxService {
     return new Promise((resolve, reject) => {
       libre.convert(docBuffer, ".pdf", undefined, (err, done) => {
         if (err) return reject(err);
-        resolve(done); // done is a Buffer containing the PDF file
+        resolve(done);
       });
     });
   }

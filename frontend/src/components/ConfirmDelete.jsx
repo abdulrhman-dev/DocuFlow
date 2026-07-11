@@ -35,7 +35,11 @@ function ConfirmDelete({ resourceName, onConfirm, disabled, onClose }) {
         {t.confirmation.irreversible}.
       </p>
       <div>
-        <Button $variation="danger" onClick={onConfirm} disabled={disabled}>
+        <Button
+          $variation="danger"
+          onClick={() => onConfirm?.(onClose)}
+          disabled={disabled}
+        >
           {t.actions.delete}
         </Button>
         <Button $variation="secondary" onClick={onClose} disabled={disabled}>

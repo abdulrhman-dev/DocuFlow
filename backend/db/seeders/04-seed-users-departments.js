@@ -21,57 +21,106 @@ const departmentNames = [
   "Structural Engineering",
 ];
 
+async function upsertUser({
+  email,
+  firstName,
+  lastName,
+  role,
+  departmentId,
+  degree,
+}) {
+  const existing = await db.query.users.findFirst({
+    where: eq(schema.users.email, email),
+  });
+  if (existing) {
+    await db
+      .update(schema.users)
+      .set({
+        firstName,
+        lastName,
+        role,
+        departmentId,
+        academicDegreeAndInstitution: degree,
+      })
+      .where(eq(schema.users.id, existing.id));
+    return existing;
+  }
+  const pwd = await bcrypt.hash("password123", 8);
+  const [u] = await db
+    .insert(schema.users)
+    .values({
+      email,
+      firstName,
+      lastName,
+      role,
+      departmentId,
+      password: pwd,
+      academicDegreeAndInstitution: degree,
+    })
+    .returning();
+  return u;
+}
+
 module.exports = {
-  async up() {
-    await db.delete(schema.users);
-    await db.delete(schema.departments);
+  async up({ reset = false } = {}) {
+    if (reset) {
+      await db.delete(schema.users);
+      await db.delete(schema.departments);
+    }
 
-    const inserted = await db
-      .insert(schema.departments)
-      .values(departmentNames.map((name) => ({ name })))
-      .returning();
+    // Upsert departments by name
+    const depMap = new Map();
+    for (const name of departmentNames) {
+      let d = await db.query.departments.findFirst({
+        where: eq(schema.departments.name, name),
+      });
+      if (!d) {
+        [d] = await db.insert(schema.departments).values({ name }).returning();
+      }
+      depMap.set(name, d);
+    }
 
-    for (let i = 0; i < inserted.length; i++) {
-      const dept = inserted[i];
-      const pwd = await bcrypt.hash("password123", 8);
+    // Upsert 3 users per department: manager, affairs, professor
+    let i = 0;
+    for (const name of departmentNames) {
+      i++;
+      const dept = depMap.get(name);
 
-      const [manager] = await db
-        .insert(schema.users)
-        .values({
-          firstName: `Manager${i + 1}`,
-          lastName: "Manager",
-          email: `manager${i + 1}@college.edu`,
-          password: pwd,
-          role: "department_manager",
-          departmentId: dept.id,
-        })
-        .returning();
-
-      const [affairs] = await db
-        .insert(schema.users)
-        .values({
-          firstName: `Affairs${i + 1}`,
-          lastName: "Affairs",
-          email: `affairs${i + 1}@college.edu`,
-          password: pwd,
-          role: "administrator",
-          departmentId: dept.id,
-        })
-        .returning();
-
-      await db.insert(schema.users).values({
-        firstName: `Professor${i + 1}`,
+      const manager = await upsertUser({
+        email: `manager${i}@college.edu`,
+        firstName: `Manager${i}`,
+        lastName: "Manager",
+        role: "department_manager",
+        departmentId: dept.id,
+        degree: null,
+      });
+      const affairs = await upsertUser({
+        email: `affairs${i}@college.edu`,
+        firstName: `Affairs${i}`,
+        lastName: "Affairs",
+        role: "administrator",
+        departmentId: dept.id,
+        degree: null,
+      });
+      await upsertUser({
+        email: `professor${i}@college.edu`,
+        firstName: `Professor${i}`,
         lastName: "Professor",
-        email: `professor${i + 1}@college.edu`,
-        password: pwd,
         role: "professor",
         departmentId: dept.id,
+        degree: "أستاذ - جامعة القاهرة",
       });
 
-      await db
-        .update(schema.departments)
-        .set({ managerId: manager.id, affairsEmployeeId: affairs.id })
-        .where(eq(schema.departments.id, dept.id));
+      // Sync manager / affairs pointers on department
+      if (
+        dept.managerId !== manager.id ||
+        dept.affairsEmployeeId !== affairs.id
+      ) {
+        await db
+          .update(schema.departments)
+          .set({ managerId: manager.id, affairsEmployeeId: affairs.id })
+          .where(eq(schema.departments.id, dept.id));
+      }
     }
   },
 };

@@ -17,6 +17,10 @@ export const translator = {
     start: "ابدأ",
     all: "جميع سير العمل",
     instance: "طلب سير عمل",
+    selectStudent: "الطالب",
+    studentPlaceholder: "ابحث بكود الطالب أو اسمه",
+    selectSupervisors: "المشرفون الإضافيون",
+    supervisorPlaceholder: "ابحث باسم أو كود الأستاذ",
   },
 
   request: {
@@ -67,6 +71,8 @@ export const translator = {
   documents: {
     forms: "الاستمارات",
     documents: "المستندات",
+    readDocuments: "المستندات السابقة",
+    editDocuments: "المستندات الجديدة",
     document: "مستند",
     fillForms: "ملء الاستمارات",
     requestedDocuments: "المستندات المطلوبة",
@@ -126,6 +132,7 @@ export const translator = {
     passwordChanged: "تم تغيير كلمة المرور بنجاح",
     avatarUploaded: "تم تحميل الصورة الشخصية بنجاح",
     activityLogged: "تم تسجيل النشاط",
+    requestDeleted: "تم حذف الطلب",
   },
 
   activity: {

@@ -19,6 +19,7 @@ const users = pgTable(
     role: roleEnum("role").notNull().default("professor"),
     departmentId: integer("departmentId"),
     profilePicture: text("profilePicture"),
+    academicDegreeAndInstitution: text("academicDegreeAndInstitution"),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),

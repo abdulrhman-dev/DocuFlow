@@ -36,6 +36,8 @@ const ar = {
     cannotSendNoAssignments: "لا يمكن إرسال الطلب: لا يوجد مستخدمون معينون",
     alreadyResponded: "لقد قمت بالفعل بالرد على هذا الطلب",
     notAssignedToUser: "لست معينًا للرد على هذا الطلب",
+    noPermissionToDelete: "ليس لديك إذن لحذف هذا الطلب",
+    cannotDeleteNonDraft: "يمكن حذف الطلبات في حالة المسودة فقط",
   },
 
   // Instance messages
@@ -61,6 +63,7 @@ const ar = {
     invalidStateMissingRequestId: "حالة مستند غير صالحة: معرف الطلب مفقود",
     templateFileUrlNotFound: "رابط ملف القالب غير موجود",
     noPermissionToViewViaRequest: "ليس لديك إذن لعرض هذا المستند",
+    readonlyViolation: (paths) => `لا يمكن تعديل الحقول للقراءة فقط: ${paths}`,
   },
 
   // Department messages

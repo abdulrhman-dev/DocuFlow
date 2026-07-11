@@ -1,36 +1,43 @@
-const express = require("express")
+const express = require("express");
 
-const requestController = require("../controllers/request.controller")
+const requestController = require("../controllers/request.controller");
 const { authenticate, authorizeRoles } = require("../middleware/auth");
 
-const requestRouter = express.Router()
+const requestRouter = express.Router();
 
 requestRouter.post(
-    "/",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    requestController.createRequest
+  "/",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator"]),
+  requestController.createRequest,
 );
 
 requestRouter.get(
-    "/",
-    authenticate,
-    authorizeRoles(["administrator"]),
-    requestController.getAllRequests
+  "/",
+  authenticate,
+  authorizeRoles(["administrator"]),
+  requestController.getAllRequests,
 );
 
 requestRouter.get(
-    "/:id",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    requestController.getRequest
+  "/:id",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator"]),
+  requestController.getRequest,
 );
 
 requestRouter.patch(
-    "/:id",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    requestController.updateRequest
+  "/:id",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator"]),
+  requestController.updateRequest,
 );
 
-module.exports = requestRouter
+requestRouter.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator"]),
+  requestController.deleteRequest,
+);
+
+module.exports = requestRouter;

@@ -11,6 +11,7 @@ import Table from "@components/Table";
 import Tag from "@components/Tag";
 import ConfirmDelete from "@components/ConfirmDelete";
 import { useAllWorkflows } from "@features/workflow";
+import { useDeleteRequest } from "../hooks/useDeleteRequest";
 
 import { translator as t } from "@data/translations/ar";
 
@@ -27,7 +28,6 @@ const Info = styled.div`
   & span:first-child {
     font-weight: 500;
   }
-
   & span:last-child {
     color: var(--color-grey-500);
     font-size: 1.2rem;
@@ -39,18 +39,16 @@ function RequestRow({
 }) {
   const navigate = useNavigate();
   const { data: workflows } = useAllWorkflows();
+  const { deleteRequest, isPending: isDeleting } = useDeleteRequest();
 
   const statusToTag = {
     pending: "blue",
     draft: "yellow",
     rejected: "red",
-    approved: "green"
+    approved: "green",
   };
 
-  const workflowId = workflows?.find(
-    (workflow) => workflow.title === workflowTitle
-  )?.id;
-
+  const workflowId = workflows?.find((w) => w.title === workflowTitle)?.id;
   const dateToDisplay = status === "draft" ? updatedAt : sentAt;
 
   function handleEditRequest() {
@@ -86,7 +84,7 @@ function RequestRow({
                 {t.actions.editRequest}
               </Menus.Button>
 
-              <Modal.Open opens="delete-request">
+              <Modal.Open opens={`delete-request-${id}`}>
                 <Menus.Button icon={<HiTrash />}>
                   {t.actions.deleteRequest}
                 </Menus.Button>
@@ -94,8 +92,12 @@ function RequestRow({
             </Menus.List>
           </Menus.Menu>
 
-          <Modal.Window name="delete-request">
-            <ConfirmDelete resourceName={t.request.request} />
+          <Modal.Window name={`delete-request-${id}`}>
+            <ConfirmDelete
+              resourceName={t.request.request}
+              disabled={isDeleting}
+              onConfirm={(close) => deleteRequest({ id }, { onSuccess: close })}
+            />
           </Modal.Window>
         </Modal>
       )}

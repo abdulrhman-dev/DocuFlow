@@ -16,5 +16,10 @@
 - Student table
     - Frontend extra page view students from it you can update/delete and create new students
         - the page should be accessible only to one role (affairs).
+-add special last stage for dean user
+- in it the following happens:
+    - signatures are auto filled an all documents
+    - the procedure gets applies
+    - printing
 
 

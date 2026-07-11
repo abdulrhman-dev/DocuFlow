@@ -1,8 +1,17 @@
-const { eq, asc } = require("drizzle-orm");
+const { eq, and, asc } = require("drizzle-orm");
 const { db, schema } = require("../../src/db");
 
 module.exports = {
-  async up() {
+  async up({ reset = false } = {}) {
+    if (reset) {
+      await db.delete(schema.requestAssignments);
+      await db.delete(schema.instanceProfessors);
+      await db.delete(schema.accesses);
+      await db.delete(schema.documents);
+      await db.delete(schema.requests);
+      await db.delete(schema.workflowInstances);
+    }
+
     const workflows = await db.query.workflows.findMany({
       with: {
         stages: {
@@ -12,27 +21,13 @@ module.exports = {
         },
       },
     });
-
     const professors = await db.query.users.findMany({
       where: eq(schema.users.role, "professor"),
     });
-
     const students = await db.query.students.findMany({
       columns: { code: true },
     });
-
-    if (!professors.length || !workflows.length || !students.length) {
-      console.log("Skipping workflow instances - missing required data");
-      return;
-    }
-
-    // Clear in FK-safe order
-    await db.delete(schema.requestAssignments);
-    await db.delete(schema.instanceProfessors);
-    await db.delete(schema.accesses);
-    await db.delete(schema.documents); // now depends only on WorkflowInstances
-    await db.delete(schema.requests);
-    await db.delete(schema.workflowInstances);
+    if (!workflows.length || !professors.length || !students.length) return;
 
     const professorsByDept = new Map();
     for (const p of professors) {
@@ -42,7 +37,6 @@ module.exports = {
     }
 
     let studentCursor = 0;
-
     for (const workflow of workflows) {
       const firstStage = workflow.stages[0];
       if (!firstStage) continue;
@@ -51,6 +45,16 @@ module.exports = {
         const professor = professors[i];
         const student = students[studentCursor % students.length];
         studentCursor++;
+
+        // Idempotency check
+        const existing = await db.query.workflowInstances.findFirst({
+          where: and(
+            eq(schema.workflowInstances.workflowId, workflow.id),
+            eq(schema.workflowInstances.userId, professor.id),
+            eq(schema.workflowInstances.studentId, student.code),
+          ),
+        });
+        if (existing) continue;
 
         const [instance] = await db
           .insert(schema.workflowInstances)
@@ -93,7 +97,12 @@ module.exports = {
           accessLevel: "edit",
         });
 
-        // Documents now live on the INSTANCE with a stageOrder
+        // Documents for this stage. Because we're seeding directly here (not
+        // going through RequestService.createRequest), we do NOT run
+        // prefillers — leave data null and let the first `createRequest`
+        // call on subsequent stages populate its own docs. If you want the
+        // seeded doc to be prefilled too, call RequestService.createRequest
+        // instead of doing the raw inserts.
         const templatesForStage = (firstStage.conditions || [])
           .map((c) => c.template)
           .filter(Boolean);
@@ -103,12 +112,7 @@ module.exports = {
               instanceId: instance.id,
               stageOrder: firstStage.stageOrder,
               templateId: t.id,
-              data: {
-                studentName: `Student for ${professor.firstName}`,
-                registrationDate: "2025-01-01",
-                creditHours: 120,
-                gpa: 3.5,
-              },
+              data: null,
             })),
           );
         }
@@ -137,9 +141,5 @@ module.exports = {
         }
       }
     }
-
-    console.log(
-      "Seeded instances, requests, assignments, and instance-linked documents.",
-    );
   },
 };

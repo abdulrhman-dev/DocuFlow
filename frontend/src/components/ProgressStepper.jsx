@@ -5,7 +5,9 @@ const StepperContainer = styled.div`
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin: 4rem 0 8rem 0;
+  margin: 0 0 4rem 0;
+  padding-top: 3rem;
+  scale: 0.9;
 `;
 
 const Step = styled.div`
@@ -61,8 +63,9 @@ const Title = styled.span`
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
-  font-size: 1.6rem;
-  color: var(--color-grey-600); 
+  font-size: 1.3rem;
+  color: var(--color-grey-600);
+  line-height: 1.3;
 `;
 
 function ProgressStepper({ currentStep = 1, items = [] }) {

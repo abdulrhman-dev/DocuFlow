@@ -33,8 +33,8 @@ const ItemCard = styled.div`
 `;
 
 const ItemIcon = styled.div`
-  width: 4.8rem;
-  height: 4.8rem;
+  width: 6.8rem;
+  height: 6.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -69,7 +69,7 @@ const AddIcon = styled.div`
 `;
 
 const ItemLabel = styled.span`
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   color: var(--color-grey-700);
   text-align: center;
 `;

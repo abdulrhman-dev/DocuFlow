@@ -16,6 +16,18 @@ const StyledModal = styled.div`
   box-shadow: var(--shadow-lg);
   padding: 3.2rem 4rem;
   transition: all 0.5s;
+ 
+  max-height: 95vh;
+  max-width: 95vw;
+  display: flex;
+  flex-direction: column;
+
+ 
+  & > div {
+    overflow: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 `;
 
 const Overlay = styled.div`
@@ -28,6 +40,7 @@ const Overlay = styled.div`
   backdrop-filter: blur(4px);
   z-index: 1000;
   transition: all 0.5s;
+  overflow: auto;
 `;
 
 const Button = styled.button`

@@ -27,6 +27,7 @@ class InstanceService {
               firstName: true,
               lastName: true,
               profilePicture: true,
+              academicDegreeAndInstitution: true,
             },
           },
         },

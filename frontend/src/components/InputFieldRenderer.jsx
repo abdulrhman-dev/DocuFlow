@@ -21,6 +21,8 @@ function InputFieldRenderer({
   const [touched, setTouched] = useState(false);
   const isNumber = schema?.type === "number" || schema?.type === "integer";
 
+
+
   if (!visible) return null;
 
   return (
@@ -36,6 +38,7 @@ function InputFieldRenderer({
           handleChange(path, isNumber ? Number(e.target.value) : e.target.value)
         }
         onBlur={() => setTouched(true)}
+        disabled={!!uischema?.options?.readonly}
       />
     </FieldWrapper>
   );
