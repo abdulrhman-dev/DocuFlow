@@ -117,10 +117,10 @@ function NewRequestForm() {
     <Container onSubmit={handleSubmit(() => sendRequest(false))}>
       <Content>
         <Heading as="h1">
-          {t.request.request} #{request.id}
+          {t.request.request} {selectedWorkflow?.title}
         </Heading>
         <P>
-          {t.request.request} {selectedWorkflow?.title}
+          {t.request.request} #{request.id}
         </P>
 
         {readDocuments.length > 0 && (
