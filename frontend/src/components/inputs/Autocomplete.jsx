@@ -254,8 +254,8 @@ function Autocomplete({
                                     <Avatar
                                         src={
                                             rendered.avatar
-                                                ? getProfilePictureUrl(rendered.avatar)
-                                                : undefined
+                                                ? getProfilePictureUrl(rendered?.avatar)
+                                                : "/default-user.jpg"
                                         }
                                         alt=""
                                     />

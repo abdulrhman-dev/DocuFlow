@@ -47,7 +47,7 @@ ${({ $isActive, $isCompleted }) => {
 
 const StepConnector = styled.div`
   height: 3px;
-  width: 15cqw;
+  width: 10cqw;
   background-color: ${({ $isCompleted }) =>
     $isCompleted ? "var(--color-brand-600)" : "var(--color-grey-200)"};
   position: relative;
