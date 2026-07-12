@@ -14,6 +14,7 @@ import DocxViewer from "./DocxViewer";
 import JsonFormsThemeWrapper from "./JsonFormsThemeWrapper";
 
 import { translator as t } from "@data/translations/ar";
+import DocumentPreview from "./DocumentPreview";
 
 const Container = styled.div`
   display: flex;
@@ -136,7 +137,7 @@ function Form({ onClose, id }) {
 
       {isSideBySide && (
         <PreviewSection>
-          <DocxViewer documentId={id} />
+          <DocumentPreview docId={id} />
         </PreviewSection>
       )}
     </Container>

@@ -131,11 +131,7 @@ class DocumentService {
   static async getDocumentPdf(user, documentId) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
-      with: {
-        template: {
-          columns: { fileUrl: true, title: true },
-        },
-      },
+      with: { template: { columns: { fileUrl: true, title: true } } },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
@@ -148,7 +144,11 @@ class DocumentService {
       throw new AppError(ar.document.templateFileUrlNotFound, 404);
     }
 
-    return await DocxService.fillDocument(document.template, document.data);
+    const pdfBuffer = await DocxService.fillAndConvertToPdf(
+      document.template,
+      document.data,
+    );
+    return { pdfBuffer, template: document.template };
   }
 }
 

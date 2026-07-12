@@ -96,7 +96,7 @@ function RequestedDoc({ doc: { name, id }, type, mode = 'view' }) {
         </Modal.Window>
       ) : (
         <Modal.Window name="preview-doc" width="80%">
-          <DocxViewer documentId={id} />
+          <DocumentPreview docId={id} />
         </Modal.Window>
       )}
     </Modal>

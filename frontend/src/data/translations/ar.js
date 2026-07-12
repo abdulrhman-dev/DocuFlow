@@ -80,6 +80,7 @@ export const translator = {
     print: "طباعة",
     sideBySide: "عرض جانبي",
     closePreview: "إغلاق المعاينة",
+    download: "تنزيل",
   },
 
   user: {

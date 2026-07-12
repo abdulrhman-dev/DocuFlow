@@ -2,10 +2,13 @@ const Docxtemplater = require("docxtemplater");
 const PizZip = require("pizzip");
 const libre = require("libreoffice-convert");
 const fs = require("fs");
+const { promisify } = require("util");
 
 const { findPreprocessor } = require("./docx-preprocessors");
 const AppError = require("../errors/AppError");
 const ar = require("../translations/ar");
+
+const libreConvert = promisify(libre.convert);
 
 class DocxService {
   /**
@@ -58,12 +61,12 @@ class DocxService {
   }
 
   static async convertToPdf(docBuffer) {
-    return new Promise((resolve, reject) => {
-      libre.convert(docBuffer, ".pdf", undefined, (err, done) => {
-        if (err) return reject(err);
-        resolve(done);
-      });
-    });
+    return await libreConvert(docBuffer, ".pdf", undefined);
+  }
+
+  static async fillAndConvertToPdf(templateOrPath, data) {
+    const docxBuffer = await DocxService.fillDocument(templateOrPath, data);
+    return await DocxService.convertToPdf(docxBuffer);
   }
 }
 

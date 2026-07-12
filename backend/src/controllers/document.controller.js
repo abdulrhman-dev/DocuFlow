@@ -29,17 +29,23 @@ async function updateDocument(req, res, next) {
 }
 
 async function getDocumentPdf(req, res, next) {
-  const docBuffer = await DocumentService.getDocumentPdf(
+  const { pdfBuffer, template } = await DocumentService.getDocumentPdf(
     req.user,
     req.params.id,
   );
 
+  const rawName = (template?.title || `document-${req.params.id}`) + ".pdf";
+  const asciiName = rawName.replace(/[^\x20-\x7E]/g, "_");
+  const utf8Name = encodeURIComponent(rawName);
+
+  res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
-    "Content-Type",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "Content-Disposition",
+    `inline; filename="${asciiName}"; filename*=UTF-8''${utf8Name}`,
   );
-  res.setHeader("Content-Disposition", "inline; filename=document.docx");
-  res.send(docBuffer);
+  res.setHeader("Content-Length", pdfBuffer.length);
+  res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  res.send(pdfBuffer);
 }
 
 module.exports = {

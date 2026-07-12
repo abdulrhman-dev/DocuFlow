@@ -1,15 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { getDocPdf } from '../services/getDocPdf';
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getDocPdf } from "../services/getDocPdf";
 
 export function useGetDocPdf({ docId, enabled = true }) {
-  const {
-    data: blob,
-    isPending,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['doc-pdf', docId],
+  const { data, isPending, error, refetch } = useQuery({
+    queryKey: ["doc-pdf", docId],
     queryFn: () => getDocPdf({ docId }),
     enabled: !!docId && enabled,
     staleTime: 0,
@@ -18,12 +13,18 @@ export function useGetDocPdf({ docId, enabled = true }) {
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
-    if (blob) {
-      const blobUrl = URL.createObjectURL(blob);
-      setUrl(blobUrl);
-      return () => URL.revokeObjectURL(blobUrl);
-    }
-  }, [blob]);
-  console.log(url, blob);
-  return { url, isPending, blob, error, refetch };
+    if (!data?.blob) return;
+    const blobUrl = URL.createObjectURL(data.blob);
+    setUrl(blobUrl);
+    return () => URL.revokeObjectURL(blobUrl);
+  }, [data?.blob]);
+
+  return {
+    url,
+    blob: data?.blob || null,
+    filename: data?.filename || null,
+    isPending,
+    error,
+    refetch,
+  };
 }
