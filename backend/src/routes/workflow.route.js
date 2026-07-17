@@ -1,29 +1,29 @@
-const express = require("express")
+const express = require("express");
 
 const workflowController = require("../controllers/workflow.controller");
-const { authenticate, authorizeRoles } = require("../middleware/auth")
+const { authenticate, authorizeRoles } = require("../middleware/auth");
 
-const workflowRouter = express.Router()
+const workflowRouter = express.Router();
 
 workflowRouter.post(
-    "/",
-    authenticate,
-    authorizeRoles(["administrator"]),
-    workflowController.createWorkflow
+  "/",
+  authenticate,
+  authorizeRoles(["administrator"]),
+  workflowController.createWorkflow,
 );
 
 workflowRouter.get(
-    "/",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    workflowController.getAll
+  "/",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  workflowController.getAll,
 );
 
 workflowRouter.get(
-    "/:id",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    workflowController.getWorkflow
-)
+  "/:id",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  workflowController.getWorkflow,
+);
 
-module.exports = workflowRouter
+module.exports = workflowRouter;

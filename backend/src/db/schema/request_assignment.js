@@ -4,7 +4,9 @@ const {
   text,
   timestamp,
   primaryKey,
+  check,
 } = require("drizzle-orm/pg-core");
+const { sql } = require("drizzle-orm");
 const { requests } = require("./request");
 const { users } = require("./user");
 const { requestStatusEnum } = require("./_enums");
@@ -20,6 +22,8 @@ const requestAssignments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     status: requestStatusEnum("status").notNull().default("pending"),
     rejectionReason: text("rejectionReason"),
+    year: integer("year"),
+    month: integer("month"),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -30,6 +34,14 @@ const requestAssignments = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.requestId, t.assignedToUserId] }),
+    monthRange: check(
+      "request_assignments_month_range",
+      sql`${t.month} IS NULL OR (${t.month} BETWEEN 1 AND 12)`,
+    ),
+    yearRange: check(
+      "request_assignments_year_range",
+      sql`${t.year} IS NULL OR (${t.year} BETWEEN 1900 AND 3000)`,
+    ),
   }),
 );
 

@@ -37,6 +37,9 @@ const usersRelations = relations(users, ({ one, many }) => ({
   activities: many(activities),
   supervisedStudents: many(supervisedStudents),
   includedInInstances: many(instanceProfessors),
+  deanReviewedInstances: many(workflowInstances, {
+    relationName: "user_dean_reviewed_instances",
+  }),
 }));
 
 // ---------- Department ----------
@@ -70,7 +73,12 @@ const stagesRelations = relations(stages, ({ one, many }) => ({
     references: [workflows.id],
   }),
   requests: many(requests),
-  instances: many(workflowInstances),
+  instances: many(workflowInstances, {
+    relationName: "instance_current_stage",
+  }),
+  rejectedInstances: many(workflowInstances, {
+    relationName: "instance_rejected_stage",
+  }),
   conditions: many(conditions),
 }));
 
@@ -98,7 +106,13 @@ const workflowInstancesRelations = relations(
       references: [workflows.id],
     }),
     stage: one(stages, {
+      relationName: "instance_current_stage",
       fields: [workflowInstances.stageId],
+      references: [stages.id],
+    }),
+    rejectedAtStage: one(stages, {
+      relationName: "instance_rejected_stage",
+      fields: [workflowInstances.rejectedAtStageId],
       references: [stages.id],
     }),
     user: one(users, {
@@ -113,6 +127,11 @@ const workflowInstancesRelations = relations(
     student: one(students, {
       fields: [workflowInstances.studentId],
       references: [students.code],
+    }),
+    deanReviewedBy: one(users, {
+      relationName: "user_dean_reviewed_instances",
+      fields: [workflowInstances.deanReviewedById],
+      references: [users.id],
     }),
     requests: many(requests),
     professors: many(instanceProfessors),

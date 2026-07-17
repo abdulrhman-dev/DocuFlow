@@ -1,10 +1,18 @@
-const { eq, and, like, or, sql } = require("drizzle-orm");
+const { eq, and, like, or, sql, ne, asc } = require("drizzle-orm");
 const { db, schema } = require("../db");
 
 class UserService {
-  static async searchUsers({ role, query } = {}) {
+  static async searchUsers({ role, query, excludeUserId } = {}) {
     const conditions = [];
     if (role) conditions.push(eq(schema.users.role, role));
+
+    if (excludeUserId !== undefined && excludeUserId !== null) {
+      const excludeId = Number(excludeUserId);
+      if (Number.isInteger(excludeId)) {
+        conditions.push(ne(schema.users.id, excludeId));
+      }
+    }
+
     if (query && String(query).trim()) {
       const q = `%${String(query).trim()}%`;
       conditions.push(
@@ -28,6 +36,7 @@ class UserService {
         departmentId: true,
         academicDegreeAndInstitution: true,
       },
+      orderBy: [asc(schema.users.firstName), asc(schema.users.lastName)],
       limit: 20,
     });
     return rows;

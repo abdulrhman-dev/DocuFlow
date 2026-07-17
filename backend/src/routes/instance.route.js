@@ -1,30 +1,29 @@
-const express = require("express")
+const express = require("express");
 
 const instanceController = require("../controllers/instance.controller");
-const { authenticate, authorizeRoles } = require("../middleware/auth")
+const { authenticate, authorizeRoles } = require("../middleware/auth");
 
-const instanceRouter = express.Router()
+const instanceRouter = express.Router();
 
 instanceRouter.post(
-    "/",
-     authenticate, 
-     authorizeRoles(["professor", "department_manager", "administrator"]),
-     instanceController.createInstance
-)
+  "/",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator"]),
+  instanceController.createInstance,
+);
 
 instanceRouter.get(
-    "/",
-    authenticate,
-    authorizeRoles(["administrator"]),
-    instanceController.getAllInstances
-)
+  "/",
+  authenticate,
+  authorizeRoles(["administrator"]),
+  instanceController.getAllInstances,
+);
 
 instanceRouter.get(
-    "/:id",
-    authenticate,
-    authorizeRoles(["professor", "department_manager", "administrator"]),
-    instanceController.getInstance
-)
+  "/:id",
+  authenticate,
+  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  instanceController.getInstance,
+);
 
-
-module.exports = instanceRouter
+module.exports = instanceRouter;

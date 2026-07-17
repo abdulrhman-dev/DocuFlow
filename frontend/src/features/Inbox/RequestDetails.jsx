@@ -2,6 +2,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useState } from "react";
+import toast from "react-hot-toast";
 
 import { RequestedDocsList } from "../request";
 import RequestTag from "./RequestTag";
@@ -9,17 +11,15 @@ import Spinner from "@components/Spinner";
 import ActionButtons from "@components/ActionButtons";
 import TextArea from "@components/inputs/TextArea";
 import Button from "@components/Button";
-import UserAvatar, { Avatar } from "@components/UserAvatar";
+import { Avatar } from "@components/UserAvatar";
 import Heading from "@components/Heading";
-import Modal from "@components/Modal"
+import Modal from "@components/Modal";
 
 import useRequestData from "../request/hooks/useRequestData";
 import { usePatchRequest } from "../request/hooks/usePatchRequest";
+import { useUser } from "@features/user/hooks/useUser";
 import { translator as t } from "@data/translations/ar";
 import { getProfilePictureUrl } from "@features/user/utils";
-import { useState } from "react";
-
-
 
 const Container = styled.form`
   display: flex;
@@ -41,15 +41,48 @@ const Content = styled.div`
 
 const Footer = styled.div`
   display: flex;
-  justify-content: flex-start;
-  gap: 1.2rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 1.6rem;
   padding-top: 2rem;
   border-top: 1px solid var(--color-grey-200);
+`;
 
-  &.full-width {
-    justify-content: stretch;
+const InlineFields = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.2rem;
+  background-color: var(--color-grey-0);
+  padding: 1.6rem;
+  border: 1px solid var(--color-grey-200);
+  border-radius: var(--border-radius-md);
+`;
+
+const Field = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 1.2rem;
+  color: var(--color-grey-700);
+`;
+
+const Input = styled.input`
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-grey-300);
+  border-radius: var(--border-radius-sm);
+  background-color: var(--color-grey-0);
+  color: var(--color-grey-800);
+  font-size: 1.4rem;
+
+  &:focus {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: -1px;
   }
+`;
+
+const ButtonsBox = styled.div`
+  display: flex;
+  gap: 1.2rem;
+  align-items: center;
 `;
 
 const StatusMessage = styled.div`
@@ -116,17 +149,80 @@ function RequestDetails() {
   const [searchParams] = useSearchParams();
   const requestId = searchParams.get("request");
   const navigate = useNavigate();
+  const { user: currentUser } = useUser();
   const { patchRequest, isPending: isResponding } = usePatchRequest(requestId);
   const { request, isPending: isLoadingRequest } = useRequestData({
     requestId,
   });
 
-  function respondToRequest(status, rejectionReason) {
-    patchRequest(
-      { id: request.id, request: { status, rejectionReason, test: true, hello: "world" } },
-      { onSuccess: () => { if (!rejectionReason) navigate("/requests/drafts") } }
+  const [year, setYear] = useState("");
+  const [month, setMonth] = useState("");
 
+
+  const isManager = currentUser?.role === "department_manager";
+
+  function validateManagerFields() {
+    if (!isManager) return true;
+    const y = Number.parseInt(year, 10);
+    const m = Number.parseInt(month, 10);
+    if (!Number.isInteger(y) || y < 1900 || y > 3000) {
+      toast.error(t.request.yearRequired);
+      return false;
+    }
+    if (!Number.isInteger(m) || m < 1 || m > 12) {
+      toast.error(t.request.monthRange);
+      return false;
+    }
+    return true;
+  }
+
+  function buildManagerPayload() {
+    if (!isManager) return {};
+    return {
+      year: Number.parseInt(year, 10),
+      month: Number.parseInt(month, 10),
+    };
+  }
+
+  function handleApprove() {
+    if (!validateManagerFields()) return;
+    patchRequest(
+      {
+        id: request.id,
+        request: { status: "approved", ...buildManagerPayload() },
+      },
+      {
+        onSuccess: (response) => {
+          const updated = response?.request || response;
+          const nd = updated?.nextDraft;
+          if (
+            nd &&
+            nd.requestId &&
+            nd.instanceId &&
+            nd.workflowId &&
+            currentUser?.id &&
+            nd.userId === currentUser.id
+          ) {
+            navigate(
+              `/workflows/${nd.workflowId}/instances/${nd.instanceId}/request/${nd.requestId}`,
+            );
+          }
+        },
+
+      },
     );
+  }
+
+  function handleReject(rejectionReason) {
+    if (!validateManagerFields()) return;
+    patchRequest({
+      id: request.id,
+      request: {
+        status: "rejected",
+        rejectionReason,
+        ...buildManagerPayload(),
+      },
+    });
   }
 
   const isPending = request?.status === "pending" || !request?.status;
@@ -135,14 +231,10 @@ function RequestDetails() {
     return <Empty>{t.request.clickRequest}</Empty>;
   if (isLoadingRequest) return <Spinner />;
 
-
   return (
-    <Container>
+    <Container onSubmit={(e) => e.preventDefault()}>
       <Content>
         <StyledHeading>
-          {
-            // TODO: the heading should be replaced
-          }
           <Heading as="h1">request for Supervision</Heading>
           <RequestTag status={request.status} />
         </StyledHeading>
@@ -174,54 +266,77 @@ function RequestDetails() {
           rows={4}
           readOnly
         />
-
-        <Footer className={!isPending ? "full-width" : ""}>
-          {isPending ? (
-            <RequestActionButtons
-              onSave={() => respondToRequest("approved")}
-              onCancel={(rejectionReason) => respondToRequest("rejected", rejectionReason)}
-              isResponding={isResponding}
-            />
-          ) : (
-            <StatusMessage $status={request?.status}>
-              {t.request[request?.status]}
-            </StatusMessage>
-          )}
-        </Footer>
       </Content>
 
+      <Footer>
+        {isPending ? (
+          <>
+            {isManager && (
+              <InlineFields>
+                <Field>
+                  <span>{t.request.year}</span>
+                  <Input
+                    type="number"
+                    min={1900}
+                    max={3000}
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    placeholder="2025"
+                  />
+                </Field>
+                <Field>
+                  <span>{t.request.month}</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    placeholder="1-12"
+                  />
+                </Field>
+              </InlineFields>
+            )}
+
+            <RequestActionButtons
+              onSave={handleApprove}
+              onCancel={handleReject}
+              isResponding={isResponding}
+            />
+          </>
+        ) : (
+          <StatusMessage $status={request?.status}>
+            {t.request[request?.status]}
+          </StatusMessage>
+        )}
+      </Footer>
     </Container>
   );
 }
 
-
-
-const ButtonsBox = styled.div`
+const RejectionButtonsBox = styled.div`
   margin-top: auto;
   display: flex;
   justify-content: flex-start;
   gap: 1.2rem;
 `;
 
-function RequestActionButtons({
-  onCancel,
-  onSave,
-  isResponding,
-}) {
+function RequestActionButtons({ onCancel, onSave, isResponding }) {
   return (
-    <ButtonsBox>
-      <Button loading={isResponding} $variation="primary" onClick={(e) => {
-        e.preventDefault();
-        onSave()
-      }}>
+    <RejectionButtonsBox>
+      <Button
+        loading={isResponding}
+        $variation="primary"
+        onClick={(e) => {
+          e.preventDefault();
+          onSave();
+        }}
+      >
         {t.actions.approve}
       </Button>
       <Modal>
         <Modal.Open opens={"request-rejection"}>
-          <Button
-            $variation={"danger"}
-            type="button"
-          >
+          <Button loading={isResponding} $variation={"danger"} type="button">
             {t.actions.reject}
           </Button>
         </Modal.Open>
@@ -229,18 +344,16 @@ function RequestActionButtons({
           <RejectionWindow handleReject={onCancel} isResponding={isResponding} />
         </Modal.Window>
       </Modal>
-
-    </ButtonsBox>
+    </RejectionButtonsBox>
   );
 }
-
 
 const RejectionContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding-right: 1rem;
   gap: 2rem;
-  width:  "50rem";
+  width: 50rem;
   transition: width 0.3s;
 `;
 
@@ -249,7 +362,7 @@ function RejectionWindow({ onClose, handleReject, isResponding }) {
 
   const handleChange = (e) => {
     setRejectionText(e.target.value);
-  }
+  };
 
   return (
     <RejectionContainer>
@@ -263,6 +376,7 @@ function RejectionWindow({ onClose, handleReject, isResponding }) {
         onCancel={() => onClose()}
         onSave={() => {
           handleReject(rejectionText);
+          onClose?.();
         }}
         textCancel={t.actions.cancel}
         textSave={t.actions.reject}
@@ -271,7 +385,7 @@ function RejectionWindow({ onClose, handleReject, isResponding }) {
         isSaving={isResponding}
       />
     </RejectionContainer>
-  )
+  );
 }
 
 export default RequestDetails;

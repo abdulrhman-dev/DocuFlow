@@ -12,7 +12,8 @@ const PreviewContainer = styled.div`
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 60rem;
+  min-height: 72rem;
+  min-width: 50rem;
   gap: 1.2rem;
 `;
 

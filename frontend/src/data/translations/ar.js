@@ -41,6 +41,18 @@ export const translator = {
     approved: "لقد وافقت على هذا الطلب",
     rejected: "لقد رفضت هذا الطلب",
     rejectionReason: "أضف سبب الرفض",
+    respond: "الرد على الطلب",
+    year: "السنة",
+    month: "الشهر",
+    yearRequired: "يرجى إدخال السنة",
+    monthRequired: "يرجى إدخال الشهر",
+    monthRange: "الشهر يجب أن يكون رقمًا بين 1 و 12",
+    yearRange: "السنة غير صالحة",
+    recipients: "المرسل إليهم",
+    responded: "الردود",
+    noRecipients: "لا يوجد مستلمون",
+    moreCount: (n) => `+${n}`,
+    sentTo: "أُرسل إلى",
   },
 
   status: {
@@ -51,6 +63,7 @@ export const translator = {
     draft: "مسودة",
     completed: "مكتمل",
     inProgress: "قيد التنفيذ",
+    executed: "تم التنفيذ",
   },
 
   actions: {
@@ -81,6 +94,21 @@ export const translator = {
     sideBySide: "عرض جانبي",
     closePreview: "إغلاق المعاينة",
     download: "تنزيل",
+  },
+
+  dean: {
+    inbox: "الطلبات المكتملة",
+    execute: "تنفيذ",
+    reject: "رفض",
+    executed: "تم تنفيذ الطلب",
+    rejected: "تم رفض الطلب من قِبل العميد",
+    rejectionReason: "سبب الرفض",
+    reviewedBy: "تمت المراجعة بواسطة",
+    executedAt: "تم التنفيذ بتاريخ",
+    rejectedAt: "تم الرفض بتاريخ",
+    noDocumentsAtStage: "لا توجد مستندات مرتبطة بهذه المرحلة",
+    tabPending: "بانتظار المراجعة",
+    tabAll: "جميع الطلبات",
   },
 
   user: {
@@ -115,6 +143,15 @@ export const translator = {
     // selectRole: "اختر الدور",
   },
 
+  instance: {
+    rejectedAtStage: "تم رفض الطلب في مرحلة:",
+    completedAt: "اكتمل بتاريخ",
+    inProgress: "قيد التنفيذ",
+    department: "القسم",
+    createdBy: "أنشأ بواسطة",
+    instanceId: "رقم الطلب",
+  },
+
   messages: {
     loggedIn: "تم تسجيل الدخول بنجاح",
     loggedOut: "تم تسجيل الخروج بنجاح",
@@ -134,6 +171,7 @@ export const translator = {
     avatarUploaded: "تم تحميل الصورة الشخصية بنجاح",
     activityLogged: "تم تسجيل النشاط",
     requestDeleted: "تم حذف الطلب",
+    error: "حدث خطأ",
   },
 
   activity: {

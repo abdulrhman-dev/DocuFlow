@@ -14,19 +14,19 @@ studentRouter.get(
   studentController.getMySupervisedStudents,
 );
 
-// List with filter/sort — administrators, professors, department managers
+// List with filter/sort — administrators, professors, department managers, dean
 studentRouter.get(
   "/",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager"]),
+  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
   studentController.getAllStudents,
 );
 
-// Get by code — administrators, professors, department managers
+// Get by code — administrators, professors, department managers, dean
 studentRouter.get(
   "/:code",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager"]),
+  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
   studentController.getStudent,
 );
 

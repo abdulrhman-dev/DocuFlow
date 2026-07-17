@@ -16,6 +16,8 @@ function usePatchRequest(requestId) {
       queryClient.invalidateQueries({ queryKey: ["incoming-reqs"] });
       queryClient.invalidateQueries({ queryKey: ["draft-reqs"] });
       queryClient.invalidateQueries({ queryKey: ["submitted-reqs"] });
+      queryClient.invalidateQueries({ queryKey: ["inbox-unresponded-count"] });
+      queryClient.invalidateQueries({ queryKey: ["draft-count"] });
     },
     onError: (error) => {
       toast.error(`${t.messages.requestError}: ${error.message}`);

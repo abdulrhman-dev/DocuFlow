@@ -13,12 +13,7 @@ export const navLinks = [
     icon: "workflow",
     roles: ["professor"],
     children: [
-      {
-        name: "new",
-        label: t.workflow.new,
-        icon: "new",
-        to: "/workflows/new",
-      },
+      { name: "new", label: t.workflow.new, icon: "new", to: "/workflows/new" },
       {
         name: "my workflows",
         label: t.workflow.myWorkflows,
@@ -31,18 +26,21 @@ export const navLinks = [
     name: "requests",
     icon: "inbox",
     label: t.navigation.requests,
+    roles: ["professor", "department_manager", "administrator"],
     children: [
       {
         name: "inbox",
         label: t.request.inbox,
         icon: "email",
         to: "/requests/inbox",
+        badge: "inboxUnresponded",
       },
       {
         name: "drafts",
         label: t.request.drafts,
         icon: "pen",
         to: "/requests/drafts",
+        badge: "drafts",
       },
       {
         name: "submitted",
@@ -51,6 +49,14 @@ export const navLinks = [
         to: "/requests/submitted",
       },
     ],
+  },
+  {
+    name: "completed",
+    icon: "submitted",
+    label: t.dean.inbox,
+    to: "/dean/completed",
+    roles: ["dean"],
+    badge: "deanPending",
   },
   {
     name: "settings",

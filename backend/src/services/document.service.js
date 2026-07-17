@@ -6,6 +6,7 @@ const { ajv } = require("../utils/ajv");
 const optionalize = require("../utils/optionalize");
 const ar = require("../translations/ar");
 const { collectReadonlyViolations } = require("../utils/readonlyEnforcer");
+const { buildSignaturesForDocument } = require("./document-signatures");
 
 async function resolveDocumentAccess(document, user) {
   // Pull every access row the user has on requests of this instance
@@ -56,7 +57,7 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    if (user.role !== "administrator") {
+    if (user.role !== "administrator" && user.role !== "dean") {
       const { view } = await resolveDocumentAccess(document, user);
       if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
@@ -135,7 +136,7 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    if (user.role !== "administrator") {
+    if (user.role !== "administrator" && user.role !== "dean") {
       const { view } = await resolveDocumentAccess(document, user);
       if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
@@ -144,9 +145,20 @@ class DocumentService {
       throw new AppError(ar.document.templateFileUrlNotFound, 404);
     }
 
+    let signatures = [];
+
+    if (user.role === "dean") {
+      signatures = await buildSignaturesForDocument(document);
+    }
+
+    const mergedData = {
+      ...(document.data || {}),
+      signatures,
+    };
+
     const pdfBuffer = await DocxService.fillAndConvertToPdf(
       document.template,
-      document.data,
+      mergedData,
     );
     return { pdfBuffer, template: document.template };
   }

@@ -1,4 +1,4 @@
-const { eq, and, like, or } = require("drizzle-orm");
+const { eq, and, like, or, asc } = require("drizzle-orm");
 const { db, schema } = require("../db");
 const AppError = require("../errors/AppError");
 const DrizzleQueryBuilder = require("../utils/DrizzleQueryBuilder");
@@ -118,6 +118,11 @@ class StudentService {
     if (extraConditions.length) builder.andWhere(...extraConditions);
 
     const opts = builder.get();
+
+    if (!opts.orderBy) {
+      opts.orderBy = [asc(schema.students.name), asc(schema.students.code)];
+    }
+
     return db.query.students.findMany(opts);
   }
 
@@ -134,6 +139,12 @@ class StudentService {
     });
 
     let students = rows.map((r) => r.student).filter(Boolean);
+
+    students.sort((a, b) => {
+      const an = (a.name || "").localeCompare(b.name || "", "ar");
+      if (an !== 0) return an;
+      return (a.code || "").localeCompare(b.code || "", "ar");
+    });
 
     if (code)
       students = students.filter(

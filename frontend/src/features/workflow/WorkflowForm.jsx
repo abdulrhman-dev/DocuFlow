@@ -14,6 +14,8 @@ import useDepartments from "@features/request/hooks/useDepartments";
 import { useSearchStudents } from "./hooks/useSearchStudents";
 import { useSearchProfessors } from "./hooks/useSearchProfessors";
 import { translator as t } from "@data/translations/ar";
+import { useUser } from "@features/user/hooks/useUser";
+
 
 const Container = styled.form`
   display: flex;
@@ -108,7 +110,7 @@ function workflowHasMultiApprovalStage(wf) {
   return !!(wf?.stages || []).some((s) => s?.isMultiApproval);
 }
 function isSupervisionWorkflow(wf) {
-  return wf?.title === "Thesis Registration";
+  return wf?.title === "تحديد الاشراف";
 }
 
 function WorkFlowForm() {
@@ -147,11 +149,22 @@ function WorkFlowForm() {
     setQuery: setStudentQuery,
   } = useSearchStudents({ scope: studentScope, enabled: !!selectedWorkflow });
 
+  const { user: currentUser } = useUser();
+
+
   const {
-    professors: profOptions,
+    professors: profOptionsRaw,
     isFetching: isProfessorsLoading,
     setQuery: setProfessorQuery,
   } = useSearchProfessors({ enabled: showSupervisors });
+
+  // Backend already excludes self; this is a belt-and-braces filter.
+  const profOptions = useMemo(
+    () =>
+      (profOptionsRaw || []).filter((p) => !currentUser || p.id !== currentUser.id),
+    [profOptionsRaw, currentUser],
+  );
+
 
   async function onSubmit(data) {
     createInstance({

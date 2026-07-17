@@ -2,6 +2,8 @@ import styled from "styled-components";
 
 import { navLinks } from "@data/sidebar/profs";
 import SidebarItem from "@components/SidebarItem";
+import { useAuth } from "@context/AuthContext";
+import Spinner from "./Spinner";
 
 const NavList = styled.ul`
   display: flex;
@@ -10,13 +12,19 @@ const NavList = styled.ul`
 `;
 
 function MainNav() {
+
+  const { isPending } = useAuth();
   return (
     <nav>
-      <NavList>
-        {navLinks.map((link) => (
-          <SidebarItem key={link?.name} data={link} />
-        ))}
-      </NavList>
+      {
+        isPending ?
+          <Spinner />
+          :
+
+          <NavList> {navLinks.map((link) => (<SidebarItem key={link?.name} data={link} />
+          ))}
+          </NavList>
+      }
     </nav>
   );
 }

@@ -2,8 +2,12 @@ const asyncDec = require("../utils/asyncDec");
 const UserService = require("../services/user.service");
 
 async function searchUsers(req, res) {
-  const { role, query } = req.query;
-  const users = await UserService.searchUsers({ role, query });
+  const { role, query, excludeSelf } = req.query;
+  const users = await UserService.searchUsers({
+    role,
+    query,
+    excludeUserId: excludeSelf === "true" ? req.user.id : undefined,
+  });
   res.json({ status: "success", data: { users } });
 }
 

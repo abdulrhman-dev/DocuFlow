@@ -17,8 +17,19 @@ class InstanceService {
     const opts = builder.attributes().get();
     opts.where = eq(schema.workflowInstances.id, Number(instanceId));
     opts.with = {
-      stage: { columns: { stageOrder: true, isMultiApproval: true } },
+      stage: {
+        columns: {
+          id: true,
+          stageOrder: true,
+          isMultiApproval: true,
+          title: true,
+          role: true,
+        },
+      },
+      rejectedAtStage: { columns: { id: true, stageOrder: true, title: true } },
       student: true,
+      workflow: { columns: { id: true, title: true } },
+      department: { columns: { id: true, name: true } },
       professors: {
         with: {
           user: {
@@ -32,12 +43,20 @@ class InstanceService {
           },
         },
       },
+      documents: {
+        columns: { id: true, stageOrder: true, templateId: true },
+        with: { template: { columns: { id: true, title: true } } },
+      },
     };
 
     const instance = await db.query.workflowInstances.findFirst(opts);
     if (!instance) throw new AppError(ar.instance.notFound, 404);
 
-    if (user?.role !== "administrator" && instance.userId !== user.id) {
+    if (
+      user?.role !== "administrator" &&
+      user?.role !== "dean" &&
+      instance.userId !== user.id
+    ) {
       throw new AppError(ar.instance.noPermission, 403);
     }
     return instance;
@@ -49,9 +68,25 @@ class InstanceService {
     builder.andWhere(eq(schema.workflowInstances.userId, userId));
     const opts = builder.get();
     opts.with = {
-      stage: { columns: { stageOrder: true, isMultiApproval: true } },
+      stage: {
+        columns: {
+          id: true,
+          stageOrder: true,
+          isMultiApproval: true,
+          title: true,
+          role: true,
+        },
+      },
+      rejectedAtStage: {
+        columns: {
+          id: true,
+          stageOrder: true,
+          title: true,
+        },
+      },
       student: true,
       professors: true,
+      workflow: { columns: { id: true, title: true } },
     };
 
     return db.query.workflowInstances.findMany(opts);
@@ -75,6 +110,10 @@ class InstanceService {
       : [];
     if (new Set(professorList).size !== professorList.length) {
       throw new AppError(ar.instance.duplicateProfessorId, 400);
+    }
+
+    if (professorList.includes(user.id)) {
+      throw new AppError(ar.instance.cannotIncludeSelf, 403);
     }
 
     departmentId = departmentId || user.departmentId;

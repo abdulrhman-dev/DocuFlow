@@ -14,6 +14,8 @@ import Settings from "@pages/Settings";
 import MyWorkflows from "@pages/MyWorkflows";
 import RequestsInbox from "@pages/RequestsInbox";
 import Requests from "@pages/Requests";
+import CompletedInstances from "@pages/CompletedInstances";
+import CompletedInstanceDetail from "@pages/CompletedInstanceDetail";
 
 import { translator as t } from "@data/translations/ar";
 
@@ -46,6 +48,8 @@ function AppRoutes() {
           </Route>
           <Route path="settings" element={<Settings />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="/dean/completed" element={<CompletedInstances />} />
+          <Route path="/dean/completed/:id" element={<CompletedInstanceDetail />} />
         </Route>
 
         <Route path="login" element={<Login />} />

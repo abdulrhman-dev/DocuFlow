@@ -3,22 +3,20 @@ const { eq } = require("drizzle-orm");
 const { db, schema } = require("../../src/db");
 
 const departmentNames = [
-  "Aeronautical and Aerospace Engineering",
-  "Architectural Engineering",
-  "Biomedical Engineering and Systems",
-  "Chemical Engineering",
-  "Computer Engineering",
-  "Electrical Power Engineering",
-  "Electronics and Communications",
-  "Engineering Mathematics and Physics",
-  "Irrigation and Hydraulics",
-  "Mechanical Design and Production",
-  "Mechanical Power Engineering",
-  "Mining & Geological Engineering Program",
-  "Petroleum Engineering Program",
-  "Metallurgical Engineering Program",
-  "Public Works",
-  "Structural Engineering",
+  "هندسة الطيران والفضاء",
+  "الهندسة المعمارية",
+  "الهندسة الطبية الحيوية والنظم",
+  "الهندسة الكيميائية",
+  "هندسة الحاسبات",
+  "هندسة القوى الكهربية",
+  "الإلكترونيات والاتصالات",
+  "الرياضيات والفيزياء الهندسية",
+  "الري والهيدروليكا",
+  "التصميم الميكانيكي والإنتاج",
+  "هندسة القوى الميكانيكية",
+  "هندسة التعدين والبترول",
+  "الأشغال العامة",
+  "الهندسة الإنشائية",
 ];
 
 async function upsertUser({
@@ -68,7 +66,6 @@ module.exports = {
       await db.delete(schema.departments);
     }
 
-    // Upsert departments by name
     const depMap = new Map();
     for (const name of departmentNames) {
       let d = await db.query.departments.findFirst({
@@ -80,7 +77,6 @@ module.exports = {
       depMap.set(name, d);
     }
 
-    // Upsert 3 users per department: manager, affairs, professor
     let i = 0;
     for (const name of departmentNames) {
       i++;
@@ -88,30 +84,32 @@ module.exports = {
 
       const manager = await upsertUser({
         email: `manager${i}@college.edu`,
-        firstName: `Manager${i}`,
-        lastName: "Manager",
+        firstName: "مدير",
+        lastName: `القسم ${i}`,
         role: "department_manager",
         departmentId: dept.id,
         degree: null,
       });
       const affairs = await upsertUser({
         email: `affairs${i}@college.edu`,
-        firstName: `Affairs${i}`,
-        lastName: "Affairs",
+        firstName: "شئون",
+        lastName: `الدراسات ${i}`,
         role: "administrator",
         departmentId: dept.id,
         degree: null,
       });
-      await upsertUser({
-        email: `professor${i}@college.edu`,
-        firstName: `Professor${i}`,
-        lastName: "Professor",
-        role: "professor",
-        departmentId: dept.id,
-        degree: "أستاذ - جامعة القاهرة",
-      });
+      // Three professors per department so multi-approval has candidates.
+      for (let k = 1; k <= 3; k++) {
+        await upsertUser({
+          email: `professor${i}_${k}@college.edu`,
+          firstName: `أستاذ ${k}`,
+          lastName: `القسم ${i}`,
+          role: "professor",
+          departmentId: dept.id,
+          degree: "أستاذ - جامعة القاهرة",
+        });
+      }
 
-      // Sync manager / affairs pointers on department
       if (
         dept.managerId !== manager.id ||
         dept.affairsEmployeeId !== affairs.id
@@ -121,6 +119,27 @@ module.exports = {
           .set({ managerId: manager.id, affairsEmployeeId: affairs.id })
           .where(eq(schema.departments.id, dept.id));
       }
+    }
+
+    const deanExisting = await db.query.users.findFirst({
+      where: eq(schema.users.email, "dean@college.edu"),
+    });
+    if (!deanExisting) {
+      const pwd = await bcrypt.hash("password123", 8);
+      await db.insert(schema.users).values({
+        email: "dean@college.edu",
+        firstName: "عميد",
+        lastName: "الكلية",
+        role: "dean",
+        departmentId: null,
+        password: pwd,
+        academicDegreeAndInstitution: null,
+      });
+    } else if (deanExisting.role !== "dean") {
+      await db
+        .update(schema.users)
+        .set({ role: "dean" })
+        .where(eq(schema.users.id, deanExisting.id));
     }
   },
 };

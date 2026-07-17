@@ -38,6 +38,9 @@ const ar = {
     notAssignedToUser: "لست معينًا للرد على هذا الطلب",
     noPermissionToDelete: "ليس لديك إذن لحذف هذا الطلب",
     cannotDeleteNonDraft: "يمكن حذف الطلبات في حالة المسودة فقط",
+    yearRequired: "يجب على مدير القسم إدخال السنة عند الرد على الطلب",
+    monthRequired: "يجب على مدير القسم إدخال الشهر عند الرد على الطلب",
+    monthOutOfRange: "الشهر يجب أن يكون بين 1 و 12",
   },
 
   // Instance messages
@@ -51,6 +54,8 @@ const ar = {
     studentNotFound: "الطالب المرتبط بكود الطلب غير موجود",
     invalidProfessorId: (id) => `كود الاستاذ المدخل غير صحيح ${id}`,
     duplicateProfessorId: "قائمة الأساتذة تحتوي على معرفات مكررة",
+    cannotIncludeSelf:
+      "لا يمكنك إضافة نفسك كأحد المشرفين لمرحلة الموافقة المشتركة",
   },
 
   // Document messages
@@ -113,6 +118,20 @@ const ar = {
     nameRequired: "اسم الطالب مطلوب",
     registrationStartRequired: "تاريخ بدء التسجيل مطلوب",
     registrationEndRequired: "تاريخ نهاية التسجيل مطلوب",
+  },
+
+  dean: {
+    instanceNotCompleted:
+      "لا يمكن اتخاذ إجراء على هذا الطلب: يجب أن تكون حالته مكتمل",
+    executed: "تم تنفيذ الطلب",
+    rejected: "تم رفض الطلب من قِبل العميد",
+    inbox: "الطلبات المكتملة",
+    execute: "تنفيذ",
+    reject: "رفض",
+    reviewedBy: "تمت المراجعة بواسطة",
+    executedAt: "تم التنفيذ بتاريخ",
+    rejectedAt: "تم الرفض بتاريخ",
+    rejectionReason: "سبب الرفض",
   },
 };
 

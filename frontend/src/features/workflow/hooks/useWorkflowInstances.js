@@ -33,6 +33,7 @@ export function useWorkflowInstances() {
         "Workflow definition not found for ID:",
         instance.workflowId,
       );
+
       return {
         id: instance.id,
         workflowId: instance.workflowId,
@@ -41,6 +42,10 @@ export function useWorkflowInstances() {
         start_datetime: instance.createdAt,
         last_updated_datetime: instance.updatedAt,
         current_stage: 0,
+        current_stage_title: null,
+        rejected_stage_order: null,
+        rejected_stage_title: null,
+        status: instance.status,
         items: [],
       };
     }
@@ -48,6 +53,8 @@ export function useWorkflowInstances() {
     const stepperSteps = definition.stages.map((stage) => ({
       title: stage.title,
     }));
+
+    console.log(instance);
 
     return {
       id: instance.id,
@@ -57,6 +64,10 @@ export function useWorkflowInstances() {
       start_datetime: instance.createdAt,
       last_updated_datetime: instance.updatedAt,
       current_stage: instance.stage.stageOrder,
+      current_stage_title: instance.stage?.title || null,
+      rejected_stage_order: instance.rejectedAtStage?.stageOrder ?? null,
+      rejected_stage_title: instance.rejectedAtStage?.title ?? null,
+      status: instance.status,
       items: stepperSteps,
     };
   }

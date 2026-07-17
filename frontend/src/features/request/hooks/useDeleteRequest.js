@@ -15,6 +15,8 @@ export function useDeleteRequest() {
       queryClient.invalidateQueries({ queryKey: ["submitted-reqs"] });
       queryClient.invalidateQueries({ queryKey: ["inbox-reqs"] });
       queryClient.invalidateQueries({ queryKey: ["incoming-reqs"] });
+      queryClient.invalidateQueries({ queryKey: ["draft-count"] });
+      queryClient.invalidateQueries({ queryKey: ["inbox-unresponded-count"] });
     },
     onError: (error) => {
       toast.error(error.message || t.general.error);

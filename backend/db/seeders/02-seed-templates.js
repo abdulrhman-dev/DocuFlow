@@ -1,39 +1,7 @@
-const { eq } = require("drizzle-orm");
+const { eq, notInArray } = require("drizzle-orm");
 const { db, schema } = require("../../src/db");
 
 function templatesData() {
-  // (unchanged JSON schemas / uiSchemas — kept inline so this file is
-  // self-contained; edit here to update templates in place.)
-  const schemaJson = {
-    type: "object",
-    properties: {
-      studentName: { type: "string", title: "Student Name" },
-      registrationDate: {
-        type: "string",
-        format: "date",
-        title: "Registration Date",
-      },
-      creditHours: { type: "number", title: "Credit Hours" },
-      gpa: { type: "number", title: "GPA" },
-    },
-    required: ["studentName", "registrationDate", "creditHours", "gpa"],
-  };
-  const uiSchemaOriginal = {
-    type: "VerticalLayout",
-    elements: [
-      { type: "Control", scope: "#/properties/studentName" },
-      { type: "Control", scope: "#/properties/registrationDate" },
-      {
-        type: "HorizontalLayout",
-        elements: [
-          { type: "Control", scope: "#/properties/creditHours" },
-          { type: "Control", scope: "#/properties/gpa" },
-        ],
-      },
-    ],
-  };
-
-  // ---- Supervision template (with backend-driven read-only fields) ----
   const supervisionSchema = {
     type: "object",
     properties: {
@@ -61,45 +29,31 @@ function templatesData() {
         title: "موضوع البحث المقترح",
         minLength: 1,
       },
-
-      // Alignment with state / department research plan
       planAxis: { type: "string", title: "المحور" },
       planGoal: { type: "string", title: "الهدف" },
       planSpecialization: { type: "string", title: "التخصص" },
       planResearchField: { type: "string", title: "المجال البحثى" },
-
-      // Up to 4 supervisors
       supervisors: {
         type: "array",
         title: "أسماء المشرفين",
         minItems: 1,
-        maxItems: 4,
         items: {
           type: "object",
           properties: {
             name: { type: "string", title: "الاسم" },
-            degreeAndInstitution: {
-              type: "string",
-              title: "الدرجة - الجهة",
-            },
+            degreeAndInstitution: { type: "string", title: "الدرجة - الجهة" },
           },
           required: ["name", "degreeAndInstitution"],
         },
       },
-
-      // Only relevant when requestType === 'edit'
       editSupervisors: {
         type: "array",
         title: "تعديل الإشراف",
-        maxItems: 2,
         items: {
           type: "object",
           properties: {
             name: { type: "string", title: "الاسم" },
-            degreeAndInstitution: {
-              type: "string",
-              title: "الدرجة - الجهة",
-            },
+            degreeAndInstitution: { type: "string", title: "الدرجة - الجهة" },
             action: {
               type: "string",
               title: "إضافة / حذف",
@@ -108,8 +62,6 @@ function templatesData() {
           },
         },
       },
-
-      // Up to 4 signatures
       signatures: {
         type: "array",
         title: "التوقيعات",
@@ -135,7 +87,6 @@ function templatesData() {
     ],
   };
 
-  // JSONForms uiSchema — mirrors the docx layout visually.
   const supervisionUiSchema = {
     type: "VerticalLayout",
     elements: [
@@ -250,48 +201,19 @@ function templatesData() {
       },
     ],
   };
+
   return [
     {
-      title: "Request for Supervision",
-      description:
-        "Template for requesting supervision for final year projects",
-      schema: schemaJson,
-      uiSchema: uiSchemaOriginal,
-      fileUrl: "public/templates/template_tmp.docx",
-    },
-    {
-      title: "Research Proposal Template",
-      description: "Template for research proposal submissions",
-      schema: {
-        type: "object",
-        properties: {
-          proposalTitle: { type: "string", title: "Proposal Title" },
-          researchArea: { type: "string", title: "Research Area" },
-          duration: { type: "number", title: "Duration (months)" },
-          budget: { type: "number", title: "Budget" },
-        },
-        required: ["proposalTitle", "researchArea", "duration"],
-      },
-      uiSchema: {
-        type: "VerticalLayout",
-        elements: [
-          { type: "Control", scope: "#/properties/proposalTitle" },
-          { type: "Control", scope: "#/properties/researchArea" },
-          { type: "Control", scope: "#/properties/duration" },
-          { type: "Control", scope: "#/properties/budget" },
-        ],
-      },
-      fileUrl: "public/templates/template_tmp.docx",
-    },
-    {
       title: "طلب تحديد الإشراف على رسالة الماجستير",
-      description: "...",
+      description: "نموذج طلب تحديد الإشراف على رسالة الماجستير",
       schema: supervisionSchema,
       uiSchema: supervisionUiSchema,
       fileUrl: "public/templates/supervision-request.docx",
     },
   ];
 }
+
+const KEEP_TITLES = templatesData().map((t) => t.title);
 
 module.exports = {
   async up({ reset = false } = {}) {
@@ -304,7 +226,6 @@ module.exports = {
       if (!existing) {
         await db.insert(schema.templates).values(tpl);
       } else {
-        // Keep schema, uiSchema, description, fileUrl in sync.
         await db
           .update(schema.templates)
           .set({
@@ -316,5 +237,12 @@ module.exports = {
           .where(eq(schema.templates.id, existing.id));
       }
     }
+
+    // Prune legacy templates. Note: conditions that reference them will need to
+    // be gone first — that's handled by 03-seed-stage-templates.js pruning too.
+    // If FK is not cascading, run: DELETE FROM "Conditions" WHERE "templateId" IN (...);
+    await db
+      .delete(schema.templates)
+      .where(notInArray(schema.templates.title, KEEP_TITLES));
   },
 };

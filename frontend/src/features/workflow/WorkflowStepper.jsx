@@ -1,15 +1,18 @@
 import ProgressStepper from "@components/ProgressStepper";
 
-/**
- * Stepper component for displaying workflow progress
- * Shows current stage and completed/pending stages
- */
-function WorkflowStepper({ currentStage = 0, items = [] }) {
+function WorkflowStepper({
+  currentStage = 0,
+  rejectedStage = null,
+  items = [],
+  status = "in_progress",
+}) {
   return (
-    <ProgressStepper 
+    <ProgressStepper
       currentStep={currentStage}
+      rejectedStep={rejectedStage}
       items={items}
-    />  
+      status={status}
+    />
   );
 }
 

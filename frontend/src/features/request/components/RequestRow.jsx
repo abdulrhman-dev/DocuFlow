@@ -12,6 +12,7 @@ import Tag from "@components/Tag";
 import ConfirmDelete from "@components/ConfirmDelete";
 import { useAllWorkflows } from "@features/workflow";
 import { useDeleteRequest } from "../hooks/useDeleteRequest";
+import RecipientsCell from "./RecipientsCell";
 
 import { translator as t } from "@data/translations/ar";
 
@@ -34,9 +35,18 @@ const Info = styled.div`
   }
 `;
 
-function RequestRow({
-  request: { id, workflowTitle, status, sentAt, updatedAt, instanceId },
-}) {
+function RequestRow({ request, showRecipients = false }) {
+  const {
+    id,
+    workflowTitle,
+    status,
+    sentAt,
+    updatedAt,
+    instanceId,
+    recipients = [],
+    recipientsSummary,
+  } = request;
+
   const navigate = useNavigate();
   const { data: workflows } = useAllWorkflows();
   const { deleteRequest, isPending: isDeleting } = useDeleteRequest();
@@ -61,6 +71,14 @@ function RequestRow({
       <Note>{workflowTitle}</Note>
 
       <Tag $type={statusToTag[status]}>{t.status[status]}</Tag>
+
+      {showRecipients && (
+        <RecipientsCell
+          recipients={recipients}
+          summary={recipientsSummary}
+        />
+      )}
+
       <Info>
         <span>
           {formatDistanceToNow(new Date(dateToDisplay), {

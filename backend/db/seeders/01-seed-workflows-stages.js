@@ -1,129 +1,8 @@
-const { eq, and } = require("drizzle-orm");
+const { eq, and, notInArray } = require("drizzle-orm");
 const { db, schema } = require("../../src/db");
 
-// Full workflow definitions (single source of truth)
+// Only one workflow now — everything in Arabic.
 const workflowsData = [
-  {
-    title: "Research Proposal Approval",
-    description: "Workflow for approving research proposals",
-    stages: [
-      {
-        title: "Initial Submission",
-        role: "professor",
-        description: "Submit proposal",
-        stageOrder: 1,
-      },
-      {
-        title: "Department Review",
-        role: "department_manager",
-        description: "Review proposal",
-        stageOrder: 2,
-      },
-    ],
-  },
-  {
-    title: "Internship Approval",
-    description: "Approval process for internship plans",
-    stages: [
-      {
-        title: "Plan Submission",
-        role: "professor",
-        description: "Submit internship plan",
-        stageOrder: 1,
-      },
-      {
-        title: "Manager Review",
-        role: "department_manager",
-        description: "Review the plan",
-        stageOrder: 2,
-      },
-      {
-        title: "Admin Final Approval",
-        role: "administrator",
-        description: "Final sign-off",
-        stageOrder: 3,
-      },
-    ],
-  },
-  {
-    title: "Thesis Registration",
-    description: "Register final year thesis topic",
-    stages: [
-      {
-        title: "Topic Proposal",
-        role: "professor",
-        description: "Suggest a thesis topic",
-        stageOrder: 1,
-      },
-      {
-        title: "Committee Review",
-        role: "professor",
-        description: "Included professors approve",
-        stageOrder: 2,
-        isMultiApproval: true,
-      },
-      {
-        title: "Manager Approval",
-        role: "department_manager",
-        description: "Review topic suitability",
-        stageOrder: 3,
-      },
-      {
-        title: "Admin Record Entry",
-        role: "administrator",
-        description: "Record thesis officially",
-        stageOrder: 4,
-      },
-      {
-        title: "Student Notification",
-        role: "professor",
-        description: "Notify student",
-        stageOrder: 5,
-      },
-    ],
-  },
-  {
-    title: "Equipment Loan Request",
-    description: "Request for borrowing lab equipment",
-    stages: [
-      {
-        title: "Request Submission",
-        role: "professor",
-        description: "Submit equipment request",
-        stageOrder: 1,
-      },
-      {
-        title: "Manager Authorization",
-        role: "department_manager",
-        description: "Authorize request",
-        stageOrder: 2,
-      },
-    ],
-  },
-  {
-    title: "Course Feedback Review",
-    description: "Workflow for reviewing student course feedback",
-    stages: [
-      {
-        title: "Initial Report by Prof",
-        role: "professor",
-        description: "Upload feedback summary",
-        stageOrder: 1,
-      },
-      {
-        title: "Manager Discussion",
-        role: "department_manager",
-        description: "Review concerns",
-        stageOrder: 2,
-      },
-      {
-        title: "Admin Action",
-        role: "administrator",
-        description: "Take necessary steps",
-        stageOrder: 3,
-      },
-    ],
-  },
   {
     title: "تحديد الاشراف",
     description: "تحديد الإشراف على رسائل الماجستير",
@@ -157,6 +36,8 @@ const workflowsData = [
   },
 ];
 
+const KEEP_TITLES = workflowsData.map((w) => w.title);
+
 async function upsertWorkflow(wf) {
   const existing = await db.query.workflows.findFirst({
     where: eq(schema.workflows.title, wf.title),
@@ -164,7 +45,6 @@ async function upsertWorkflow(wf) {
 
   let workflow;
   if (existing) {
-    // Keep description in sync in case it changed
     if (existing.description !== wf.description) {
       await db
         .update(schema.workflows)
@@ -178,6 +58,8 @@ async function upsertWorkflow(wf) {
       .values({ title: wf.title, description: wf.description })
       .returning();
   }
+
+  const desiredOrders = wf.stages.map((s) => s.stageOrder);
 
   for (const s of wf.stages) {
     const stage = await db.query.stages.findFirst({
@@ -210,6 +92,29 @@ async function upsertWorkflow(wf) {
         .where(eq(schema.stages.id, stage.id));
     }
   }
+
+  // Drop any stray stages on this workflow that are no longer in the definition.
+  await db
+    .delete(schema.stages)
+    .where(
+      and(
+        eq(schema.stages.workflowId, workflow.id),
+        notInArray(schema.stages.stageOrder, desiredOrders),
+      ),
+    );
+}
+
+async function pruneUnwantedWorkflows() {
+  const all = await db.query.workflows.findMany({
+    columns: { id: true, title: true },
+  });
+  const doomed = all.filter((w) => !KEEP_TITLES.includes(w.title));
+  for (const w of doomed) {
+    // Cascade removes instances/stages via FKs if they were set with ON DELETE CASCADE.
+    // If not, this delete may fail — in that case the DB has active data referencing
+    // legacy workflows, and you should clear those manually.
+    await db.delete(schema.workflows).where(eq(schema.workflows.id, w.id));
+  }
 }
 
 module.exports = {
@@ -219,5 +124,6 @@ module.exports = {
       await db.delete(schema.workflows);
     }
     for (const wf of workflowsData) await upsertWorkflow(wf);
+    await pruneUnwantedWorkflows();
   },
 };

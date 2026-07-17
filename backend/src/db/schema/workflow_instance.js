@@ -20,6 +20,9 @@ const workflowInstances = pgTable("WorkflowInstances", {
   stageId: integer("stageId")
     .notNull()
     .references(() => stages.id, { onDelete: "cascade" }),
+  rejectedAtStageId: integer("rejectedAtStageId").references(() => stages.id, {
+    onDelete: "set null",
+  }),
   userId: integer("userId")
     .notNull()
     .references(() => users.id),
@@ -30,6 +33,12 @@ const workflowInstances = pgTable("WorkflowInstances", {
     .notNull()
     .references(() => students.code, { onDelete: "restrict" }),
   status: instanceStatusEnum("status").notNull().default("in_progress"),
+  deanReviewedById: integer("deanReviewedById").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  deanReviewedAt: timestamp("deanReviewedAt", { withTimezone: true }),
+  deanRejectionReason: text("deanRejectionReason"),
+
   createdAt: timestamp("createdAt", { withTimezone: true })
     .notNull()
     .defaultNow(),

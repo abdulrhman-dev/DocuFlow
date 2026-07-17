@@ -5,43 +5,39 @@ module.exports = {
   async up({ reset = false } = {}) {
     if (reset) await db.delete(schema.conditions);
 
-    const firstStages = await db.query.stages.findMany({
-      where: eq(schema.stages.stageOrder, 1),
-      columns: { id: true, workflowId: true },
+    const supervisionTemplate = await db.query.templates.findFirst({
+      where: eq(
+        schema.templates.title,
+        "طلب تحديد الإشراف على رسالة الماجستير",
+      ),
+      columns: { id: true },
     });
-    const templates = await db.query.templates.findMany({
-      columns: { id: true, title: true },
+    const workflow = await db.query.workflows.findFirst({
+      where: eq(schema.workflows.title, "تحديد الاشراف"),
+      columns: { id: true },
     });
-    if (!firstStages.length || !templates.length) return;
-
-    const supervisionTemplate = templates.find(
-      (t) => t.title === "Request for Supervision",
-    );
-    const thesisTemplate = templates.find(
-      (t) => t.title === "طلب تحديد الإشراف على رسالة الماجستير",
-    );
-
-    const desired = [];
-    const targetWorkflowTitles = ["Thesis Registration", "تحديد الاشراف"];
-    for (const title of targetWorkflowTitles) {
-      const wf = await db.query.workflows.findFirst({
-        where: eq(schema.workflows.title, title),
-        columns: { id: true },
-      });
-      if (!wf || !thesisTemplate) continue;
-      const stage = firstStages.find((x) => x.workflowId === wf.id);
-      if (!stage) continue;
-      desired.push({ stageId: stage.id, templateId: thesisTemplate.id });
+    if (!supervisionTemplate || !workflow) {
+      // Nothing to wire yet — clear stray conditions and exit.
+      await db.delete(schema.conditions);
+      return;
+    }
+    const stage1 = await db.query.stages.findFirst({
+      where: and(
+        eq(schema.stages.workflowId, workflow.id),
+        eq(schema.stages.stageOrder, 1),
+      ),
+      columns: { id: true },
+    });
+    if (!stage1) {
+      await db.delete(schema.conditions);
+      return;
     }
 
-    for (const row of desired) {
-      const existing = await db.query.conditions.findFirst({
-        where: and(
-          eq(schema.conditions.stageId, row.stageId),
-          eq(schema.conditions.templateId, row.templateId),
-        ),
-      });
-      if (!existing) await db.insert(schema.conditions).values(row);
-    }
+    // Wipe everything and (re)insert the single mapping we want.
+    await db.delete(schema.conditions);
+    await db.insert(schema.conditions).values({
+      stageId: stage1.id,
+      templateId: supervisionTemplate.id,
+    });
   },
 };

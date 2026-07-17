@@ -10,6 +10,7 @@ const documentRouter = require("./document.route");
 const departmentRouter = require("./department.route");
 const studentRouter = require("./student.route");
 const userRouter = require("./user.route");
+const deanRouter = require("./dean.route");
 
 const apiRouter = express.Router();
 
@@ -23,5 +24,6 @@ apiRouter.use("/document", documentRouter);
 apiRouter.use("/department", departmentRouter);
 apiRouter.use("/student", studentRouter);
 apiRouter.use("/user", userRouter);
+apiRouter.use("/dean", deanRouter);
 
 module.exports = apiRouter;

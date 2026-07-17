@@ -40,7 +40,29 @@ class RequestService {
     user: {
       columns: { firstName: true, lastName: true, profilePicture: true },
     },
-    assignments: true,
+    assignments: {
+      columns: {
+        requestId: true,
+        assignedToUserId: true,
+        status: true,
+        rejectionReason: true,
+        year: true,
+        month: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      with: {
+        assignee: {
+          columns: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profilePicture: true,
+            role: true,
+          },
+        },
+      },
+    },
   };
 
   static _transformRequest(request) {
@@ -57,6 +79,32 @@ class RequestService {
         templateId: d.templateId,
         name: d.template?.title || null,
       }));
+
+    // ---- Recipients summary --------------------------------------------------
+    const rawAssignments = Array.isArray(plain.assignments)
+      ? plain.assignments
+      : [];
+    plain.recipients = rawAssignments.map((a) => ({
+      userId: a.assignedToUserId,
+      firstName: a.assignee?.firstName || null,
+      lastName: a.assignee?.lastName || null,
+      profilePicture: a.assignee?.profilePicture || null,
+      role: a.assignee?.role || null,
+      status: a.status,
+      rejectionReason: a.rejectionReason || null,
+      year: a.year ?? null,
+      month: a.month ?? null,
+    }));
+    plain.recipientsSummary = {
+      total: rawAssignments.length,
+      approved: rawAssignments.filter((a) => a.status === "approved").length,
+      rejected: rawAssignments.filter((a) => a.status === "rejected").length,
+      pending: rawAssignments.filter((a) => a.status === "pending").length,
+      responded: rawAssignments.filter((a) => a.status !== "pending").length,
+    };
+    // Do not leak the inner joined `assignee` blob back to the client.
+    delete plain.assignments;
+    // -------------------------------------------------------------------------
 
     plain.workflowTitle = plain.instance?.workflow?.title || null;
     delete plain.instance;
@@ -540,6 +588,7 @@ class RequestService {
     rejectionReason,
     user,
     transaction,
+    extra = {},
   ) {
     const cb = async (tx) => {
       const allowedStatuses = ["approved", "rejected"];
@@ -549,6 +598,35 @@ class RequestService {
       if (newStatus === "rejected" && !rejectionReason) {
         throw new AppError(ar.request.rejectionReasonRequired, 400);
       }
+
+      // ---- year / month: required only for department_manager -----------------
+      let yearVal = null;
+      let monthVal = null;
+      if (user.role === "department_manager") {
+        const rawYear = extra?.year;
+        const rawMonth = extra?.month;
+        if (rawYear === undefined || rawYear === null || rawYear === "") {
+          throw new AppError(ar.request.yearRequired, 400);
+        }
+        if (rawMonth === undefined || rawMonth === null || rawMonth === "") {
+          throw new AppError(ar.request.monthRequired, 400);
+        }
+        yearVal = Number.parseInt(rawYear, 10);
+        monthVal = Number.parseInt(rawMonth, 10);
+        if (!Number.isInteger(yearVal) || yearVal < 1900 || yearVal > 3000) {
+          throw new AppError(ar.request.yearRequired, 400);
+        }
+        if (!Number.isInteger(monthVal) || monthVal < 1 || monthVal > 12) {
+          throw new AppError(ar.request.monthOutOfRange, 400);
+        }
+      } else {
+        // Non-managers must not smuggle these values in.
+        if (extra?.year !== undefined || extra?.month !== undefined) {
+          yearVal = null;
+          monthVal = null;
+        }
+      }
+      // -------------------------------------------------------------------------
 
       const assignment = await tx.query.requestAssignments.findFirst({
         where: and(
@@ -566,6 +644,8 @@ class RequestService {
         .set({
           status: newStatus,
           rejectionReason: newStatus === "rejected" ? rejectionReason : null,
+          year: yearVal,
+          month: monthVal,
         })
         .where(
           and(
@@ -600,7 +680,6 @@ class RequestService {
             .set({ stageId: nextStage.id })
             .where(eq(schema.workflowInstances.id, instance.id));
 
-          // Create the next request only if there is another stage after that one.
           const reloaded = await tx.query.workflowInstances.findFirst({
             where: eq(schema.workflowInstances.id, instance.id),
             with: { stage: true },
@@ -613,14 +692,14 @@ class RequestService {
             );
           if (afterNext) {
             if (nextStage.isMultiApproval) {
-              const request = await RequestService.createRequest(
+              const created = await RequestService.createRequest(
                 instance.id,
                 "",
                 instance.userId,
                 tx,
               );
               await RequestService.updateMyRequest(
-                request,
+                created,
                 "pending",
                 "",
                 null,
@@ -642,9 +721,28 @@ class RequestService {
             .where(eq(schema.workflowInstances.id, instance.id));
         }
       } else if (effectiveStatus === "rejected") {
+        const instance = await tx.query.workflowInstances.findFirst({
+          where: eq(schema.workflowInstances.id, request.instanceId),
+          with: { stage: true },
+        });
+
+        let failedAtStageId = null;
+        if (instance) {
+          const { nextStage } =
+            await RequestService._resolveNextStageAndAssignees(
+              instance,
+              instance.stage.stageOrder,
+              tx,
+            );
+          failedAtStageId = nextStage?.id || instance.stage.id;
+        }
+
         await tx
           .update(schema.workflowInstances)
-          .set({ status: "rejected" })
+          .set({
+            status: "rejected",
+            rejectedAtStageId: failedAtStageId,
+          })
           .where(eq(schema.workflowInstances.id, request.instanceId));
       }
 
@@ -652,7 +750,46 @@ class RequestService {
         where: eq(schema.requests.id, request.id),
         with: { assignments: true },
       });
-      return attachDerived(updated);
+
+      const liveInstance = await tx.query.workflowInstances.findFirst({
+        where: eq(schema.workflowInstances.id, request.instanceId),
+        columns: {
+          id: true,
+          status: true,
+          stageId: true,
+          workflowId: true,
+        },
+      });
+
+      let newDraft = null;
+      if (liveInstance && liveInstance.status !== "rejected") {
+        newDraft = await tx.query.requests.findFirst({
+          where: and(
+            eq(schema.requests.instanceId, request.instanceId),
+            ne(schema.requests.id, request.id),
+          ),
+          columns: { id: true, userId: true, instanceId: true, sentAt: true },
+          orderBy: (r, { desc }) => [desc(r.createdAt)],
+        });
+        if (newDraft && newDraft.sentAt) {
+          // It's not a draft — ignore.
+          newDraft = null;
+        }
+      }
+
+      const result = attachDerived(updated);
+      result.instanceStatus = liveInstance?.status || null;
+      if (newDraft) {
+        result.nextDraft = {
+          requestId: newDraft.id,
+          instanceId: newDraft.instanceId,
+          workflowId: liveInstance.workflowId,
+          userId: newDraft.userId,
+        };
+      } else {
+        result.nextDraft = null;
+      }
+      return result;
     };
 
     if (transaction) return await cb(transaction);
