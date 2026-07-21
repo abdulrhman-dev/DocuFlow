@@ -16,6 +16,10 @@ import JsonFormsThemeWrapper from "./JsonFormsThemeWrapper";
 import { translator as t } from "@data/translations/ar";
 import DocumentPreview from "./DocumentPreview";
 
+import PlanPickerRenderer, {
+  PlanPickerTester,
+} from "../renderers/PlanPickerRenderer";
+
 const Container = styled.div`
   display: flex;
   gap: 2rem;
@@ -85,6 +89,14 @@ function Form({ onClose, id }) {
     );
   }
 
+  useEffect(() => {
+    // Expose the current doc id so the plan-picker renderer can look it up.
+    if (typeof window !== "undefined") window.__docFormId = id;
+    return () => {
+      if (typeof window !== "undefined") window.__docFormId = null;
+    };
+  }, [id]);
+
   if (isPending) return null;
 
   return (
@@ -116,6 +128,11 @@ function Form({ onClose, id }) {
                   {
                     tester: InputFieldTester,
                     renderer: InputFieldRenderer,
+                  }
+                  ,
+                  {
+                    tester: PlanPickerTester,
+                    renderer: PlanPickerRenderer,
                   },
                 ]}
               />

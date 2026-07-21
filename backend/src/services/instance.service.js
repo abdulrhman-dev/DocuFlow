@@ -52,13 +52,17 @@ class InstanceService {
     const instance = await db.query.workflowInstances.findFirst(opts);
     if (!instance) throw new AppError(ar.instance.notFound, 404);
 
-    if (
-      user?.role !== "administrator" &&
-      user?.role !== "dean" &&
-      instance.userId !== user.id
-    ) {
+    const READONLY_ROLES = new Set([
+      "administrator",
+      "reviewer",
+      "director",
+      "dean",
+    ]);
+
+    if (!READONLY_ROLES.has(user?.role) && instance.userId !== user.id) {
       throw new AppError(ar.instance.noPermission, 403);
     }
+
     return instance;
   }
 

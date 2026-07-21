@@ -32,6 +32,18 @@ const workflowsData = [
         description: "مراجعة شئون الدراسات العليا",
         stageOrder: 4,
       },
+      {
+        title: "مراجعة لجنة الدراسات العليا",
+        role: "reviewer",
+        description: "مراجعة لجنة الدراسات العليا",
+        stageOrder: 5,
+      },
+      {
+        title: "مراجعة مجلس الكلية",
+        role: "director",
+        description: "مراجعة مجلس الكلية",
+        stageOrder: 6,
+      },
     ],
   },
 ];

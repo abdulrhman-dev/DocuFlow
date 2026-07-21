@@ -275,6 +275,20 @@ class RequestService {
             : [instance.userId],
         };
       }
+
+      if (nextStage.role === "reviewer" || nextStage.role === "director") {
+        // College-wide singleton roles. Pick the (first) user carrying that role.
+        const roleUser = await tx.query.users.findFirst({
+          where: eq(schema.users.role, nextStage.role),
+          columns: { id: true },
+          orderBy: (u, { asc }) => [asc(u.id)],
+        });
+        return {
+          nextStage,
+          assignees: roleUser ? [roleUser.id] : [instance.userId],
+        };
+      }
+
       // professor: back to the instance creator
       return { nextStage, assignees: [instance.userId] };
     }

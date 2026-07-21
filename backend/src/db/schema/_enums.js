@@ -5,6 +5,8 @@ const roleEnum = pgEnum("role", [
   "department_manager",
   "administrator",
   "dean",
+  "reviewer",
+  "director",
 ]);
 const requestStatusEnum = pgEnum("request_status", [
   "draft",

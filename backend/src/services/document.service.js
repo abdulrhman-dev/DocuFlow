@@ -7,6 +7,7 @@ const optionalize = require("../utils/optionalize");
 const ar = require("../translations/ar");
 const { collectReadonlyViolations } = require("../utils/readonlyEnforcer");
 const { buildSignaturesForDocument } = require("./document-signatures");
+const { isEligibleForDepartment } = require("./research-plan");
 
 async function resolveDocumentAccess(document, user) {
   // Pull every access row the user has on requests of this instance
@@ -53,7 +54,10 @@ class DocumentService {
   static async getDocumentById(user, documentId) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
-      with: { template: { columns: { schema: true, uiSchema: true } } },
+      with: {
+        template: { columns: { schema: true, uiSchema: true } },
+        instance: { columns: { id: true, departmentId: true } },
+      },
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
@@ -115,6 +119,25 @@ class DocumentService {
         ar.document.readonlyViolation(violations.join(", ")),
         400,
       );
+    }
+
+    // If the template has a `plan` field, cross-check that the chosen
+    // axis/goal is eligible for the instance's department.
+    if (data && data.plan && (data.plan.axisCode || data.plan.goalCode)) {
+      const inst = await db.query.workflowInstances.findFirst({
+        where: eq(schema.workflowInstances.id, document.instanceId),
+        with: { department: { columns: { name: true } } },
+      });
+      const deptName = inst?.department?.name || null;
+      if (
+        !isEligibleForDepartment(
+          deptName,
+          data.plan.axisCode,
+          data.plan.goalCode,
+        )
+      ) {
+        throw new AppError(ar.document.planNotEligible, 400);
+      }
     }
 
     document.data = data;

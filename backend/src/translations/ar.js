@@ -69,6 +69,8 @@ const ar = {
     templateFileUrlNotFound: "رابط ملف القالب غير موجود",
     noPermissionToViewViaRequest: "ليس لديك إذن لعرض هذا المستند",
     readonlyViolation: (paths) => `لا يمكن تعديل الحقول للقراءة فقط: ${paths}`,
+    planNotEligible:
+      "الهدف/المحور المختار غير مسموح به لهذا القسم — اختر من القائمة المعروضة",
   },
 
   // Department messages
@@ -118,6 +120,7 @@ const ar = {
     nameRequired: "اسم الطالب مطلوب",
     registrationStartRequired: "تاريخ بدء التسجيل مطلوب",
     registrationEndRequired: "تاريخ نهاية التسجيل مطلوب",
+    nationalIdTaken: "الرقم القومي / جواز السفر مسجل لطالب آخر",
   },
 
   dean: {
@@ -132,6 +135,11 @@ const ar = {
     executedAt: "تم التنفيذ بتاريخ",
     rejectedAt: "تم الرفض بتاريخ",
     rejectionReason: "سبب الرفض",
+  },
+
+  roles: {
+    reviewer: "لجنة الدراسات العليا",
+    director: "مجلس الكلية",
   },
 };
 

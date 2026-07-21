@@ -37,11 +37,19 @@ class StudentService {
     });
     if (existing) throw new AppError(ar.student.alreadyExists, 400);
 
+    const dup = await db.query.students.findFirst({
+      where: eq(schema.students.nationalId, value.nationalId),
+    });
+    if (dup) throw new AppError(ar.student.nationalIdTaken, 400);
+
     const [student] = await db
       .insert(schema.students)
       .values({
         code: value.code,
         name: value.name,
+        nationalId: value.nationalId ?? null,
+        gpa: value.gpa ?? null,
+        creditHours: value.creditHours ?? null,
         registrationStart: new Date(value.registrationStart),
         registrationEnd: new Date(value.registrationEnd),
       })
@@ -73,6 +81,20 @@ class StudentService {
 
     const patch = {};
     if (value.name !== undefined) patch.name = value.name;
+    if (value.nationalId !== undefined) {
+      // Uniqueness check
+      if (value.nationalId) {
+        const dup = await db.query.students.findFirst({
+          where: eq(schema.students.nationalId, value.nationalId),
+        });
+        if (dup && dup.code !== student.code) {
+          throw new AppError(ar.student.nationalIdTaken, 400);
+        }
+      }
+      patch.nationalId = value.nationalId;
+    }
+    if (value.gpa !== undefined) patch.gpa = value.gpa;
+    if (value.creditHours !== undefined) patch.creditHours = value.creditHours;
     if (value.registrationStart !== undefined)
       patch.registrationStart = nextStart;
     if (value.registrationEnd !== undefined) patch.registrationEnd = nextEnd;
@@ -99,9 +121,7 @@ class StudentService {
   static async getAllStudents(query) {
     const q = StudentService._sanitizeSort(query);
 
-    // We only allow `code` and `name` to filter through the query builder;
-    // extract them, strip everything else from the builder input.
-    const { code, name, ...rest } = q;
+    const { code, name, nationalId, ...rest } = q;
 
     const builder = new DrizzleQueryBuilder(rest, schema.students);
     builder.filter().sort().attributes();
@@ -112,9 +132,12 @@ class StudentService {
         or(
           like(schema.students.code, `%${code}%`),
           like(schema.students.name, `%${code}%`),
+          like(schema.students.nationalId, `%${code}%`),
         ),
       );
     if (name) extraConditions.push(like(schema.students.name, `%${name}%`));
+    if (nationalId)
+      extraConditions.push(like(schema.students.nationalId, `%${nationalId}%`));
     if (extraConditions.length) builder.andWhere(...extraConditions);
 
     const opts = builder.get();
@@ -129,7 +152,7 @@ class StudentService {
   // ===== Students supervised by a specific user =====
   static async getStudentsSupervisedBy(userId, query) {
     const q = StudentService._sanitizeSort(query);
-    const { code, name, ...rest } = q;
+    const { code, name, nationalId, ...rest } = q;
 
     // Fetch the supervision rows joined with the student, then apply filter/sort in memory
     // on the returned students (kept simple — dataset per professor is small).
@@ -148,9 +171,16 @@ class StudentService {
 
     if (code)
       students = students.filter(
-        (s) => s.code.includes(code) || s.name.includes(code),
+        (s) =>
+          (s.code || "").includes(code) ||
+          (s.name || "").includes(code) ||
+          (s.nationalId || "").includes(code),
       );
+
     if (name) students = students.filter((s) => s.name.includes(name));
+
+    if (nationalId)
+      students = students.filter((s) => s.nationalId.includes(nationId));
 
     // Reuse the same sort semantics as DrizzleQueryBuilder (single field, +/- prefix)
     if (q.sort) {

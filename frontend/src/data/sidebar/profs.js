@@ -26,7 +26,13 @@ export const navLinks = [
     name: "requests",
     icon: "inbox",
     label: t.navigation.requests,
-    roles: ["professor", "department_manager", "administrator"],
+    roles: [
+      "professor",
+      "department_manager",
+      "administrator",
+      "reviewer",
+      "director",
+    ],
     children: [
       {
         name: "inbox",

@@ -225,7 +225,7 @@ function WorkFlowForm() {
                       onQueryChange={setStudentQuery}
                       itemKey={(it) => it.code}
                       getInputValue={(it) => `${it.code} — ${it.name}`}
-                      renderItem={(it) => ({ primary: it.name, sub: it.code })}
+                      renderItem={(it) => ({ primary: it.name, sub: `${it.code} — ${it.nationalId}` })}
                       placeholder={t.workflow.studentPlaceholder}
                       showAvatar={false}
                     />

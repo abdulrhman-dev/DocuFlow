@@ -51,11 +51,16 @@ function buildInitialData({ instance, creatorUser }) {
     requestType: "new",
     studentName: instance?.student?.name || "",
     registrationDate: toIsoDate(instance?.student?.registrationStart),
-    creditHours: 0,
-    gpa: 0,
+    creditHours:
+      typeof instance?.student?.creditHours === "number"
+        ? instance.student.creditHours
+        : Number(instance?.student?.creditHours) || 0,
+    gpa:
+      typeof instance?.student?.gpa === "number"
+        ? instance.student.gpa
+        : Number(instance?.student?.gpa) || 0,
     researchSubject: "",
-    planAxis: "",
-    planGoal: "",
+    plan: { axisCode: "", goalCode: "" },
     planSpecialization: "",
     planResearchField: "",
     supervisors,

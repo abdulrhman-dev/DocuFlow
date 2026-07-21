@@ -8,7 +8,13 @@ const instanceRouter = express.Router();
 instanceRouter.post(
   "/",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   instanceController.createInstance,
 );
 
@@ -22,7 +28,14 @@ instanceRouter.get(
 instanceRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   instanceController.getInstance,
 );
 

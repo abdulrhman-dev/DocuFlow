@@ -29,8 +29,15 @@ function templatesData() {
         title: "موضوع البحث المقترح",
         minLength: 1,
       },
-      planAxis: { type: "string", title: "المحور" },
-      planGoal: { type: "string", title: "الهدف" },
+      plan: {
+        type: "object",
+        title: "توافق الموضوع مع الخطة البحثية",
+        properties: {
+          axisCode: { type: "string", title: "المحور" },
+          goalCode: { type: "string", title: "الهدف" },
+        },
+        required: ["axisCode", "goalCode"],
+      },
       planSpecialization: { type: "string", title: "التخصص" },
       planResearchField: { type: "string", title: "المجال البحثى" },
       supervisors: {
@@ -84,6 +91,7 @@ function templatesData() {
       "gpa",
       "researchSubject",
       "supervisors",
+      "plan",
     ],
   };
 
@@ -113,8 +121,16 @@ function templatesData() {
             scope: "#/properties/registrationDate",
             options: { readonly: true },
           },
-          { type: "Control", scope: "#/properties/creditHours" },
-          { type: "Control", scope: "#/properties/gpa" },
+          {
+            type: "Control",
+            scope: "#/properties/creditHours",
+            options: { readonly: true },
+          },
+          {
+            type: "Control",
+            scope: "#/properties/gpa",
+            options: { readonly: true },
+          },
         ],
       },
       {
@@ -152,13 +168,15 @@ function templatesData() {
       },
       {
         type: "Group",
-        label: "توافق الموضوع مع الخطة البحثية",
         elements: [
+          {
+            type: "Control",
+            scope: "#/properties/plan",
+            options: { customRenderer: "planPicker" },
+          },
           {
             type: "HorizontalLayout",
             elements: [
-              { type: "Control", scope: "#/properties/planAxis" },
-              { type: "Control", scope: "#/properties/planGoal" },
               { type: "Control", scope: "#/properties/planSpecialization" },
               { type: "Control", scope: "#/properties/planResearchField" },
             ],

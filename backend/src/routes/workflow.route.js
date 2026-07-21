@@ -15,14 +15,28 @@ workflowRouter.post(
 workflowRouter.get(
   "/",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   workflowController.getAll,
 );
 
 workflowRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   workflowController.getWorkflow,
 );
 

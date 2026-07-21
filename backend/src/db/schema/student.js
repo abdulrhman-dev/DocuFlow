@@ -1,8 +1,17 @@
-const { pgTable, text, timestamp } = require("drizzle-orm/pg-core");
+const {
+  pgTable,
+  text,
+  timestamp,
+  numeric,
+  integer,
+} = require("drizzle-orm/pg-core");
 
 const students = pgTable("Students", {
   code: text("code").primaryKey(),
   name: text("name").notNull(),
+  nationalId: text("nationalId").unique().notNull(),
+  gpa: numeric("gpa", { precision: 4, scale: 2 }),
+  creditHours: integer("creditHours"),
   registrationStart: timestamp("registrationStart", {
     withTimezone: true,
   }).notNull(),

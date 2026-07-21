@@ -18,7 +18,14 @@ studentRouter.get(
 studentRouter.get(
   "/",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
+  authorizeRoles([
+    "administrator",
+    "professor",
+    "department_manager",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   studentController.getAllStudents,
 );
 
@@ -26,7 +33,14 @@ studentRouter.get(
 studentRouter.get(
   "/:code",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
+  authorizeRoles([
+    "administrator",
+    "professor",
+    "department_manager",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   studentController.getStudent,
 );
 

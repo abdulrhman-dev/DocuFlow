@@ -68,7 +68,7 @@ const Step = styled.div`
 
 const StepConnector = styled.div`
   height: 3px;
-  width: 10cqw;
+  width: 9cqw;
   background-color: ${({ $state }) => {
     if ($state === "completed_all") {
       return "var(--color-green-700)";

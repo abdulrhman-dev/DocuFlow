@@ -77,6 +77,37 @@ module.exports = {
       depMap.set(name, d);
     }
 
+    async function ensureSingleton(email, firstName, lastName, role) {
+      const existing = await db.query.users.findFirst({
+        where: eq(schema.users.email, email),
+      });
+      if (existing) {
+        await db
+          .update(schema.users)
+          .set({ firstName, lastName, role, departmentId: null })
+          .where(eq(schema.users.id, existing.id));
+        return;
+      }
+      const pwd = await bcrypt.hash("password123", 8);
+      await db.insert(schema.users).values({
+        email,
+        firstName,
+        lastName,
+        role,
+        departmentId: null,
+        password: pwd,
+        academicDegreeAndInstitution: null,
+      });
+    }
+
+    await ensureSingleton(
+      "reviewer@college.edu",
+      "لجنة",
+      "الدراسات العليا",
+      "reviewer",
+    );
+    await ensureSingleton("director@college.edu", "مجلس", "الكلية", "director");
+
     let i = 0;
     for (const name of departmentNames) {
       i++;

@@ -7,14 +7,28 @@ const userRouter = express.Router();
 userRouter.get(
   "/",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
+  authorizeRoles([
+    "administrator",
+    "professor",
+    "department_manager",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   userController.searchUsers,
 );
 
 userRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles(["administrator", "professor", "department_manager", "dean"]),
+  authorizeRoles([
+    "administrator",
+    "professor",
+    "department_manager",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   userController.getUser,
 );
 

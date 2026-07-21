@@ -18,7 +18,7 @@ export const translator = {
     all: "جميع سير العمل",
     instance: "طلب سير عمل",
     selectStudent: "الطالب",
-    studentPlaceholder: "ابحث بكود الطالب أو اسمه",
+    studentPlaceholder: "ابحث بكود الطالب أو الاسم أو الرقم القومي",
     selectSupervisors: "المشرفون الإضافيون",
     supervisorPlaceholder: "ابحث باسم أو كود الأستاذ",
   },
@@ -239,5 +239,20 @@ export const translator = {
     invalidEmail: "يرجى إدخال بريد إلكتروني صحيح",
     oldPasswordRequired: "يرجى إدخال كلمة المرور القديمة",
     newPasswordRequired: "يرجى إدخال كلمة المرور الجديدة",
+  },
+
+  plan: {
+    title: "توافق الموضوع مع الخطة البحثية",
+    stepAxis: "الخطوة 1: اختر المحور",
+    stepGoal: "الخطوة 2: اختر الهدف",
+    backToAxes: "العودة إلى المحاور",
+    selected: "المختار",
+    noDepartment: "لم يتم تحديد القسم للطلب — لا يمكن عرض المحاور",
+    noAxes: "لا توجد محاور بحثية متاحة لهذا القسم",
+  },
+
+  roles: {
+    reviewer: "لجنة الدراسات العليا",
+    director: "مجلس الكلية",
   },
 };

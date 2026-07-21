@@ -8,7 +8,13 @@ const requestRouter = express.Router();
 requestRouter.post(
   "/",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   requestController.createRequest,
 );
 
@@ -22,21 +28,39 @@ requestRouter.get(
 requestRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   requestController.getRequest,
 );
 
 requestRouter.patch(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   requestController.updateRequest,
 );
 
 requestRouter.delete(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   requestController.deleteRequest,
 );
 

@@ -8,6 +8,7 @@
  *  - Translate `editSupervisors[].action` enum -> Arabic label used in the
  *    "إضافة / حذف" cell of the docx.
  */
+const { labelsForCodes } = require("../research-plan");
 
 const CHECK_MARK = "✔";
 
@@ -36,6 +37,14 @@ function preprocess(data) {
     name: s?.name ?? "",
     signature: s?.signature ?? "",
   }));
+
+  const planAxisCode = src?.plan?.axisCode || "";
+  const planGoalCode = src?.plan?.goalCode || "";
+  // const { axisName, goalName } = labelsForCodes(planAxisCode, planGoalCode);
+  out.planAxis = planAxisCode || "";
+  out.planGoal = planGoalCode || "";
+  out.planSpecialization = src?.planSpecialization ?? "";
+  out.planResearchField = src?.planResearchField ?? "";
 
   out.requestTypeNewMark = src.requestType === "new" ? CHECK_MARK : "";
   out.requestTypeEditMark = src.requestType === "edit" ? CHECK_MARK : "";

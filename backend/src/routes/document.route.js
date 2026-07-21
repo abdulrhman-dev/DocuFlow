@@ -8,21 +8,41 @@ const doucmentRouter = express.Router();
 doucmentRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   documentController.getDocument,
 );
 
 doucmentRouter.get(
   "/:id/pdf",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator", "dean"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "dean",
+    "reviewer",
+    "director",
+  ]),
   documentController.getDocumentPdf,
 );
 
 doucmentRouter.patch(
   "/:id",
   authenticate,
-  authorizeRoles(["professor", "department_manager", "administrator"]),
+  authorizeRoles([
+    "professor",
+    "department_manager",
+    "administrator",
+    "reviewer",
+    "director",
+  ]),
   documentController.updateDocument,
 );
 

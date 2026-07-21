@@ -1,6 +1,5 @@
 const { eq } = require("drizzle-orm");
 const { db, schema } = require("../../src/db");
-
 const ARABIC_FIRST = [
   "أحمد",
   "محمد",
@@ -62,23 +61,31 @@ module.exports = {
 
     for (let i = 1; i <= 20; i++) {
       const code = `STU${String(i).padStart(4, "0")}`;
+      const nationalId = `29811${String(i).padStart(9, "0")}`; // synthetic 14-digit ID
+      const gpa = (3.0 + (i % 10) * 0.1).toFixed(2);
+      const creditHours = 24 + (i % 5) * 3;
+
       const existing = await db.query.students.findFirst({
         where: eq(schema.students.code, code),
       });
-      const name = fullNameFor(i);
       if (existing) {
-        // keep name in sync so old English names get replaced
-        if (existing.name !== name) {
-          await db
-            .update(schema.students)
-            .set({ name })
-            .where(eq(schema.students.code, code));
-        }
+        await db
+          .update(schema.students)
+          .set({
+            name: existing.name || fullNameFor(i),
+            nationalId,
+            gpa,
+            creditHours,
+          })
+          .where(eq(schema.students.code, code));
         continue;
       }
       await db.insert(schema.students).values({
         code,
-        name,
+        name: fullNameFor(i),
+        nationalId,
+        gpa,
+        creditHours,
         registrationStart: now,
         registrationEnd: oneYearAhead,
       });

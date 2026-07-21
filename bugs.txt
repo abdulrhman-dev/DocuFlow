@@ -8,4 +8,3 @@
 - Invalidate query after modifications
     - me-instances
     - activity log
-- access of file is not given to the next user
