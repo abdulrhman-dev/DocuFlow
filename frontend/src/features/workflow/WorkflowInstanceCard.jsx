@@ -1,7 +1,13 @@
 import styled, { css } from "styled-components";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { HiCheckCircle, HiXCircle, HiClock } from "react-icons/hi2";
+import {
+  HiCheckCircle,
+  HiXCircle,
+  HiClock,
+  HiOutlinePrinter,
+  HiOutlineDocumentCheck,
+} from "react-icons/hi2";
 
 import Row from "@components/Row";
 import ID from "@components/ID";
@@ -22,10 +28,11 @@ const Card = styled.div`
   ${({ $status }) =>
     $status === "completed" &&
     css`
-      border-left: 6px solid var(--color-green-700);
+
+          border-left: 6px solid var(--color-brand-700);
       background: linear-gradient(
         90deg,
-        var(--color-green-100) 0%,
+        var(--color-brand-100, #eef) 0%,
         var(--color-grey-0) 30%
       );
     `}
@@ -37,6 +44,28 @@ const Card = styled.div`
       background: linear-gradient(
         90deg,
         var(--color-red-100) 0%,
+        var(--color-grey-0) 30%
+      );
+    `}
+
+  ${({ $status }) =>
+    $status === "printed" &&
+    css`
+      border-left: 6px solid var(--color-blue-700);
+      background: linear-gradient(
+        90deg,
+        var(--color-blue-100, #dbeafe) 0%,
+        var(--color-grey-0) 30%
+      );
+    `}
+
+  ${({ $status }) =>
+    $status === "approved" &&
+    css`
+        border-left: 6px solid var(--color-green-700);
+      background: linear-gradient(
+        90deg,
+        var(--color-green-100) 0%,
         var(--color-grey-0) 30%
       );
     `}
@@ -78,8 +107,8 @@ const StatusBadge = styled.div`
   ${({ $status }) =>
     $status === "completed" &&
     css`
-      background: var(--color-green-100);
-      color: var(--color-green-700);
+      background: var(--color-brand-100, #eef);
+      color: var(--color-brand-700, #4338ca);
     `}
 
   ${({ $status }) =>
@@ -94,6 +123,21 @@ const StatusBadge = styled.div`
     css`
       background: var(--color-brand-100, #eef);
       color: var(--color-brand-700, #333);
+    `}
+
+  ${({ $status }) =>
+    $status === "printed" &&
+    css`
+      background: var(--color-blue-100, #dbeafe);
+      color: var(--color-blue-700);
+    `}
+
+  ${({ $status }) =>
+    $status === "approved" &&
+    css`
+          background: var(--color-green-100);
+
+      color: var(--color-green-700);
     `}
 
   & svg {
@@ -115,23 +159,21 @@ const RejectedDetail = styled.div`
 function statusIcon(status) {
   if (status === "completed") return <HiCheckCircle />;
   if (status === "rejected") return <HiXCircle />;
+  if (status === "printed") return <HiOutlinePrinter />;
+  if (status === "approved") return <HiOutlineDocumentCheck />;
   return <HiClock />;
 }
 
 function statusLabel(status) {
   if (status === "completed") return t.status.completed;
   if (status === "rejected") return t.status.rejected;
+  if (status === "printed") return t.status.printed;
+  if (status === "approved") return t.status.executed;
   return t.status.inProgress;
 }
 
 function WorkflowInstanceCard({ instance }) {
   let status = instance.status || "in_progress";
-
-
-  // TODO: Please don't laugh
-  if (status === "executed")
-    status = "completed"
-
 
   return (
     <Card $status={status}>
@@ -151,14 +193,15 @@ function WorkflowInstanceCard({ instance }) {
             {statusIcon(status)}
             {statusLabel(status)}
           </StatusBadge>
-          {status === "rejected" && (instance.rejected_stage_title || instance.current_stage_title) && (
-            <RejectedDetail>
-              {t.instance.rejectedAtStage}{" "}
-              <strong>
-                {instance.rejected_stage_title || instance.current_stage_title}
-              </strong>
-            </RejectedDetail>
-          )}
+          {status === "rejected" &&
+            (instance.rejected_stage_title || instance.current_stage_title) && (
+              <RejectedDetail>
+                {t.instance.rejectedAtStage}{" "}
+                <strong>
+                  {instance.rejected_stage_title || instance.current_stage_title}
+                </strong>
+              </RejectedDetail>
+            )}
         </HeaderContainer>
         <IDWrapper>
           <ID>#{instance.id}</ID>

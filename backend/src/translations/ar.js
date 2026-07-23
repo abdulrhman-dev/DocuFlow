@@ -124,18 +124,35 @@ const ar = {
     nationalIdTaken: "الرقم القومي / جواز السفر مسجل لطالب آخر",
   },
 
-  dean: {
-    instanceNotCompleted:
-      "لا يمكن اتخاذ إجراء على هذا الطلب: يجب أن تكون حالته مكتمل",
-    executed: "تم تنفيذ الطلب",
-    rejected: "تم رفض الطلب من قِبل العميد",
-    inbox: "الطلبات المكتملة",
-    execute: "تنفيذ",
-    reject: "رفض",
-    reviewedBy: "تمت المراجعة بواسطة",
-    executedAt: "تم التنفيذ بتاريخ",
-    rejectedAt: "تم الرفض بتاريخ",
-    rejectionReason: "سبب الرفض",
+  affairs: {
+    inbox: "الطلبات المكتملة (شئون الدراسات)",
+    tabCompleted: "بانتظار الطباعة",
+    tabPrinted: "تمت طباعتها",
+    tabApproved: "تم اعتمادها",
+    tabRejected: "مرفوضة",
+    printSelected: "طباعة المحدد",
+    exportBundle: "تصدير كملف PDF مجمع",
+    selectAtLeastOne: "اختر طلبًا واحدًا على الأقل",
+    nothingToPrint: "لا توجد طلبات جاهزة للطباعة ضمن المحدد",
+    invalidStatus: "حالة غير معروفة",
+    printed: "تمت الطباعة",
+    workflowFilter: "نوع سير العمل",
+    all: "الكل",
+    selectAtLeastOne: "اختر طلبًا واحدًا على الأقل",
+  },
+
+  director: {
+    inbox: "اعتماد مجلس الكلية",
+    search: "ابحث بكود الطالب أو الاسم أو سير العمل",
+    approve: "اعتماد المحدد",
+    reject: "رفض المحدد",
+    approvalFile: "قرار الاعتماد",
+    approvalFileRequired: "قرار الاعتماد مطلوب",
+    approvalFileHint: "يقبل PDF أو صورة (بحد أقصى 10 ميغابايت)",
+    selectAtLeastOne: "اختر طلبًا واحدًا على الأقل",
+    nothingApprovable: "لا توجد طلبات مطبوعة صالحة للاعتماد ضمن المحدد",
+    approved: "تم اعتماد الطلب",
+    rejected: "تم رفض الطلب",
   },
 
   roles: {

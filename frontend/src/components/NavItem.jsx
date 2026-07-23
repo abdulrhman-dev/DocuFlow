@@ -6,7 +6,8 @@ import { useAuth } from "@context/AuthContext";
 import {
   useUnrespondedCount,
   useDraftCount,
-  useDeanPendingCount,
+  useAffairsPendingCount,
+  useDirectorPendingCount,
 } from "@features/request/hooks/useRequestCounts";
 
 function NavItem({ data }) {
@@ -17,7 +18,8 @@ function NavItem({ data }) {
 
   const unresponded = useUnrespondedCount();
   const draftCount = useDraftCount();
-  const deanPending = useDeanPendingCount();
+  const affairsPending = useAffairsPendingCount();
+  const directorPending = useDirectorPendingCount();
 
   if (user && data.roles && !data.roles.includes(user.role)) return null;
 
@@ -29,8 +31,11 @@ function NavItem({ data }) {
   } else if (badge === "drafts") {
     badgeCount = draftCount;
     badgeVariant = "grey";
-  } else if (badge === "deanPending") {
-    badgeCount = deanPending;
+  } else if (badge === "affairsPending") {
+    badgeCount = affairsPending;
+    badgeVariant = "red";
+  } else if (badge === "directorPending") {
+    badgeCount = directorPending;
     badgeVariant = "red";
   }
 

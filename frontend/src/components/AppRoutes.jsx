@@ -14,8 +14,9 @@ import Settings from "@pages/Settings";
 import MyWorkflows from "@pages/MyWorkflows";
 import RequestsInbox from "@pages/RequestsInbox";
 import Requests from "@pages/Requests";
-import CompletedInstances from "@pages/CompletedInstances";
-import CompletedInstanceDetail from "@pages/CompletedInstanceDetail";
+import AffairsCompletedInstances from "@pages/AffairsCompletedInstances";
+import AffairsInstanceDetail from "@pages/AffairsInstanceDetail";
+import DirectorApprovals from "@pages/DirectorApprovals";
 
 import { translator as t } from "@data/translations/ar";
 
@@ -48,15 +49,17 @@ function AppRoutes() {
           </Route>
           <Route path="settings" element={<Settings />} />
           <Route path="dashboard" element={<Dashboard />} />
-          <Route path="/dean/completed" element={<CompletedInstances />} />
-          <Route path="/dean/completed/:id" element={<CompletedInstanceDetail />} />
+
+          <Route path="/affairs/completed" element={<AffairsCompletedInstances />} />
+          <Route path="/affairs/completed/:id" element={<AffairsInstanceDetail />} />
+          <Route path="/director/approvals" element={<DirectorApprovals />} />
         </Route>
 
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
         <Route path="*" element={<h1>{t.general.notFound}</h1>} />
-      </Routes >
-    </BrowserRouter >
+      </Routes>
+    </BrowserRouter>
   );
 }
 

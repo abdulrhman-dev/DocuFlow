@@ -37,8 +37,11 @@ const usersRelations = relations(users, ({ one, many }) => ({
   activities: many(activities),
   supervisedStudents: many(supervisedStudents),
   includedInInstances: many(instanceProfessors),
-  deanReviewedInstances: many(workflowInstances, {
-    relationName: "user_dean_reviewed_instances",
+  printedInstances: many(workflowInstances, {
+    relationName: "user_printed_instances",
+  }),
+  approvedInstances: many(workflowInstances, {
+    relationName: "user_approved_instances",
   }),
 }));
 
@@ -128,9 +131,14 @@ const workflowInstancesRelations = relations(
       fields: [workflowInstances.studentId],
       references: [students.code],
     }),
-    deanReviewedBy: one(users, {
-      relationName: "user_dean_reviewed_instances",
-      fields: [workflowInstances.deanReviewedById],
+    printedBy: one(users, {
+      relationName: "user_printed_instances",
+      fields: [workflowInstances.printedById],
+      references: [users.id],
+    }),
+    approvedBy: one(users, {
+      relationName: "user_approved_instances",
+      fields: [workflowInstances.approvedById],
       references: [users.id],
     }),
     requests: many(requests),

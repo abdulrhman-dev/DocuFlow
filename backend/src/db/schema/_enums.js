@@ -4,7 +4,6 @@ const roleEnum = pgEnum("role", [
   "professor",
   "department_manager",
   "administrator",
-  "dean",
   "reviewer",
   "director",
 ]);
@@ -17,8 +16,9 @@ const requestStatusEnum = pgEnum("request_status", [
 const instanceStatusEnum = pgEnum("instance_status", [
   "in_progress",
   "completed",
+  "printed",
+  "approved",
   "rejected",
-  "executed",
 ]);
 const accessLevelEnum = pgEnum("access_level", ["read", "respond", "edit"]);
 

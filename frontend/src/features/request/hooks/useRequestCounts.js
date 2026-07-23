@@ -1,26 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@utils/api";
 
-async function fetchCount(endpoint) {
-  const token = localStorage.getItem("token");
-  const data = await apiRequest(endpoint, { method: "GET", token });
-  return data?.data?.requests?.length ?? 0;
+function tk() {
+  return localStorage.getItem("token");
 }
 
-/**
- * Provides count of pending unresponded (inbox) requests for the current user.
- * The endpoint /me/request?type=inbox already returns only those assigned to
- * the user; we further filter to status === "pending" so the badge only shows
- * genuinely un-responded items.
- */
 function useUnrespondedCount() {
   const { data } = useQuery({
     queryKey: ["inbox-unresponded-count"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
       const res = await apiRequest("/me/request?type=inbox", {
         method: "GET",
-        token,
+        token: tk(),
       });
       const requests = res?.data?.requests || [];
       return requests.filter((r) => r.status === "pending").length;
@@ -34,21 +25,26 @@ function useUnrespondedCount() {
 function useDraftCount() {
   const { data } = useQuery({
     queryKey: ["draft-count"],
-    queryFn: () => fetchCount("/me/request?type=sent&status=draft"),
+    queryFn: async () => {
+      const res = await apiRequest("/me/request?type=sent&status=draft", {
+        method: "GET",
+        token: tk(),
+      });
+      return res?.data?.requests?.length ?? 0;
+    },
     refetchOnWindowFocus: true,
     staleTime: 30_000,
   });
   return data ?? 0;
 }
 
-function useDeanPendingCount() {
+function useAffairsPendingCount() {
   const { data } = useQuery({
-    queryKey: ["dean-pending-count"],
+    queryKey: ["affairs-pending-count"],
     queryFn: async () => {
-      const token = localStorage.getItem("token");
-      const res = await apiRequest("/dean/instance/pending-count", {
+      const res = await apiRequest("/affairs/instance/pending-count", {
         method: "GET",
-        token,
+        token: tk(),
       });
       return res?.data?.count ?? 0;
     },
@@ -58,4 +54,25 @@ function useDeanPendingCount() {
   return data ?? 0;
 }
 
-export { useUnrespondedCount, useDraftCount, useDeanPendingCount };
+function useDirectorPendingCount() {
+  const { data } = useQuery({
+    queryKey: ["director-pending-count"],
+    queryFn: async () => {
+      const res = await apiRequest("/director/instance/pending-count", {
+        method: "GET",
+        token: tk(),
+      });
+      return res?.data?.count ?? 0;
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+  });
+  return data ?? 0;
+}
+
+export {
+  useUnrespondedCount,
+  useDraftCount,
+  useAffairsPendingCount,
+  useDirectorPendingCount,
+};

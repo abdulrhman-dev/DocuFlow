@@ -32,7 +32,6 @@ instanceRouter.get(
     "professor",
     "department_manager",
     "administrator",
-    "dean",
     "reviewer",
     "director",
   ]),

@@ -5,31 +5,25 @@ const documentController = require("../controllers/document.controller");
 
 const doucmentRouter = express.Router();
 
+const VIEW_ROLES = [
+  "professor",
+  "department_manager",
+  "administrator",
+  "reviewer",
+  "director",
+];
+
 doucmentRouter.get(
   "/:id",
   authenticate,
-  authorizeRoles([
-    "professor",
-    "department_manager",
-    "administrator",
-    "dean",
-    "reviewer",
-    "director",
-  ]),
+  authorizeRoles(VIEW_ROLES),
   documentController.getDocument,
 );
 
 doucmentRouter.get(
   "/:id/pdf",
   authenticate,
-  authorizeRoles([
-    "professor",
-    "department_manager",
-    "administrator",
-    "dean",
-    "reviewer",
-    "director",
-  ]),
+  authorizeRoles(VIEW_ROLES),
   documentController.getDocumentPdf,
 );
 

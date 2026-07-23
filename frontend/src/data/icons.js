@@ -6,16 +6,19 @@ import {
   HiOutlineInbox,
   HiOutlineRectangleStack,
   HiOutlineUsers,
+  HiOutlineDocumentCheck,
+  HiOutlinePrinter,
 } from "react-icons/hi2";
 import { LuPen } from "react-icons/lu";
 import { PiTelegramLogo } from "react-icons/pi";
-import { MdOutlineWidgets } from "react-icons/md";
+import {
+  MdOutlineWidgets,
+  MdArrowDropDown,
+  MdOutlineEmail,
+} from "react-icons/md";
 import { LiaPlusSquare } from "react-icons/lia";
 import { SlLogout } from "react-icons/sl";
-import { MdArrowDropDown } from "react-icons/md";
-import { MdOutlineEmail } from "react-icons/md";
 import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
-
 
 export const icons = {
   home: HiOutlineHome,
@@ -31,6 +34,8 @@ export const icons = {
   inbox: HiOutlineInbox,
   myWorkflows: HiOutlineRectangleStack,
   dropdownFilter: MdArrowDropDown,
-  email: MdOutlineEmail, // Alternative email icon
-  form: HiOutlineClipboardDocumentCheck, // <--- Added
+  email: MdOutlineEmail,
+  form: HiOutlineClipboardDocumentCheck,
+  printer: HiOutlinePrinter,
+  approve: HiOutlineDocumentCheck,
 };

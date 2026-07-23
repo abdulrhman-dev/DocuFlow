@@ -19,6 +19,7 @@ app.use(express.static("public"));
 if (process.env.MODE === "DEV") app.use(morgan("dev"));
 
 app.use("/avatars", express.static("public/static/avatars"));
+app.use("/static/approvals", express.static("public/static/approvals"));
 
 app.use(cors(corOptions));
 app.use(express.json());

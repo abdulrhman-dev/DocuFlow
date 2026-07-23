@@ -1,5 +1,5 @@
 {
-  "id": "e7acb1f1-0927-4e06-9f02-287e8cda98d2",
+  "id": "ff8b71d9-2a01-421c-b4cd-c189e734777f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -413,6 +413,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "academicDegreeAndInstitution": {
+          "name": "academicDegreeAndInstitution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -697,6 +703,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "rejectedAtStageId": {
+          "name": "rejectedAtStageId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "userId": {
           "name": "userId",
           "type": "integer",
@@ -722,6 +734,42 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'in_progress'"
+        },
+        "printedById": {
+          "name": "printedById",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "printedAt": {
+          "name": "printedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvedById": {
+          "name": "approvedById",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvedAt": {
+          "name": "approvedAt",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approvalFile": {
+          "name": "approvalFile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rejectionReason": {
+          "name": "rejectionReason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -766,6 +814,19 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
+        "WorkflowInstances_rejectedAtStageId_Stages_id_fk": {
+          "name": "WorkflowInstances_rejectedAtStageId_Stages_id_fk",
+          "tableFrom": "WorkflowInstances",
+          "tableTo": "Stages",
+          "columnsFrom": [
+            "rejectedAtStageId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
         "WorkflowInstances_userId_Users_id_fk": {
           "name": "WorkflowInstances_userId_Users_id_fk",
           "tableFrom": "WorkflowInstances",
@@ -803,6 +864,32 @@
             "code"
           ],
           "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "WorkflowInstances_printedById_Users_id_fk": {
+          "name": "WorkflowInstances_printedById_Users_id_fk",
+          "tableFrom": "WorkflowInstances",
+          "tableTo": "Users",
+          "columnsFrom": [
+            "printedById"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "WorkflowInstances_approvedById_Users_id_fk": {
+          "name": "WorkflowInstances_approvedById_Users_id_fk",
+          "tableFrom": "WorkflowInstances",
+          "tableTo": "Users",
+          "columnsFrom": [
+            "approvedById"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -931,6 +1018,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "nationalId": {
+          "name": "nationalId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gpa": {
+          "name": "gpa",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creditHours": {
+          "name": "creditHours",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "registrationStart": {
           "name": "registrationStart",
           "type": "timestamp with time zone",
@@ -961,7 +1066,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "Students_nationalId_unique": {
+          "name": "Students_nationalId_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nationalId"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1070,6 +1183,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "month": {
+          "name": "month",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isExtended": {
+          "name": "isExtended",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp with time zone",
@@ -1125,7 +1256,16 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "request_assignments_month_range": {
+          "name": "request_assignments_month_range",
+          "value": "\"RequestAssignments\".\"month\" IS NULL OR (\"RequestAssignments\".\"month\" BETWEEN 1 AND 12)"
+        },
+        "request_assignments_year_range": {
+          "name": "request_assignments_year_range",
+          "value": "\"RequestAssignments\".\"year\" IS NULL OR (\"RequestAssignments\".\"year\" BETWEEN 1900 AND 3000)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.InstanceProfessors": {
@@ -1210,7 +1350,9 @@
       "values": [
         "professor",
         "department_manager",
-        "administrator"
+        "administrator",
+        "reviewer",
+        "director"
       ]
     },
     "public.request_status": {
@@ -1229,6 +1371,8 @@
       "values": [
         "in_progress",
         "completed",
+        "printed",
+        "approved",
         "rejected"
       ]
     },

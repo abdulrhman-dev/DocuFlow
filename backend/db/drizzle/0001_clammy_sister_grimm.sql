@@ -1,1 +1,0 @@
-ALTER TABLE "Users" ADD COLUMN "academicDegreeAndInstitution" text;

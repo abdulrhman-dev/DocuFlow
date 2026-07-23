@@ -151,26 +151,5 @@ module.exports = {
           .where(eq(schema.departments.id, dept.id));
       }
     }
-
-    const deanExisting = await db.query.users.findFirst({
-      where: eq(schema.users.email, "dean@college.edu"),
-    });
-    if (!deanExisting) {
-      const pwd = await bcrypt.hash("password123", 8);
-      await db.insert(schema.users).values({
-        email: "dean@college.edu",
-        firstName: "عميد",
-        lastName: "الكلية",
-        role: "dean",
-        departmentId: null,
-        password: pwd,
-        academicDegreeAndInstitution: null,
-      });
-    } else if (deanExisting.role !== "dean") {
-      await db
-        .update(schema.users)
-        .set({ role: "dean" })
-        .where(eq(schema.users.id, deanExisting.id));
-    }
   },
 };

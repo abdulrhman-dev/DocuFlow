@@ -61,7 +61,7 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    if (user.role !== "administrator" && user.role !== "dean") {
+    if (user.role !== "administrator" && user.role !== "director") {
       const { view } = await resolveDocumentAccess(document, user);
       if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
@@ -159,7 +159,7 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    if (user.role !== "administrator" && user.role !== "dean") {
+    if (user.role !== "administrator" && user.role !== "director") {
       const { view } = await resolveDocumentAccess(document, user);
       if (!view) throw new AppError(ar.document.noPermissionToView, 403);
     }
@@ -170,9 +170,7 @@ class DocumentService {
 
     let signatures = [];
 
-    // if (user.role === "dean") {
     signatures = await buildSignaturesForDocument(document);
-    // }
 
     const mergedData = {
       ...(document.data || {}),

@@ -1,2 +1,0 @@
-ALTER TABLE "WorkflowInstances" ADD COLUMN "rejectedAtStageId" integer;--> statement-breakpoint
-ALTER TABLE "WorkflowInstances" ADD CONSTRAINT "WorkflowInstances_rejectedAtStageId_Stages_id_fk" FOREIGN KEY ("rejectedAtStageId") REFERENCES "public"."Stages"("id") ON DELETE set null ON UPDATE no action;

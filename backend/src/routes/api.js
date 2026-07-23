@@ -10,8 +10,9 @@ const documentRouter = require("./document.route");
 const departmentRouter = require("./department.route");
 const studentRouter = require("./student.route");
 const userRouter = require("./user.route");
-const deanRouter = require("./dean.route");
 const planRouter = require("./plan.route");
+const affairsRouter = require("./affairs.route");
+const directorRouter = require("./director.route");
 
 const apiRouter = express.Router();
 
@@ -25,7 +26,8 @@ apiRouter.use("/document", documentRouter);
 apiRouter.use("/department", departmentRouter);
 apiRouter.use("/student", studentRouter);
 apiRouter.use("/user", userRouter);
-apiRouter.use("/dean", deanRouter);
 apiRouter.use("/plan", planRouter);
+apiRouter.use("/affairs", affairsRouter);
+apiRouter.use("/director", directorRouter);
 
 module.exports = apiRouter;

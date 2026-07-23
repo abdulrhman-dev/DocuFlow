@@ -34,7 +34,9 @@
     "multer": "^2.0.2",
     "pg": "^8.13.1",
     "pizzip": "^3.2.0",
-    "tmp-promise": "^3.0.3"
+    "tmp-promise": "^3.0.3",
+    "archiver": "^7.0.1",
+    "pdf-lib": "^1.17.1"
   },
   "devDependencies": {
     "apidoc": "^1.2.0",

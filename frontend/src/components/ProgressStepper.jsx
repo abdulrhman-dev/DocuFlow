@@ -23,7 +23,24 @@ const Step = styled.div`
   z-index: 2;
 
   ${({ $state }) => {
+
+    if ($state === "printed") {
+      return css`
+        background-color: var(--color-blue-700);
+        color: var(--color-grey-0);
+        border: 3px solid var(--color-blue-700);
+      `;
+    }
+
     if ($state === "completed_all") {
+      return css`
+        background-color: var(--color-brand-700);
+        color: var(--color-grey-0);
+        border: 3px solid var(--color-brand-700);
+      `;
+    }
+
+    if ($state === "approved") {
       return css`
         background-color: var(--color-green-700);
         color: var(--color-grey-0);
@@ -70,7 +87,15 @@ const StepConnector = styled.div`
   height: 3px;
   width: 9cqw;
   background-color: ${({ $state }) => {
+    if ($state === "printed") {
+      return "var(--color-blue-700)";
+    }
+
     if ($state === "completed_all") {
+      return "var(--color-brand-700)";
+    }
+
+    if ($state === "approved") {
       return "var(--color-green-700)";
     }
 
@@ -123,7 +148,10 @@ function ProgressStepper({
         let stepState = "pending";
         let connectorState = "pending";
 
-        if (status === "completed") {
+        if (status === "approved" || status === "printed") {
+          stepState = status;
+          connectorState = status;
+        } else if (status === "completed") {
           stepState = "completed_all";
           connectorState = "completed_all";
         } else if (status === "rejected") {

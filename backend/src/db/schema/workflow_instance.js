@@ -33,11 +33,20 @@ const workflowInstances = pgTable("WorkflowInstances", {
     .notNull()
     .references(() => students.code, { onDelete: "restrict" }),
   status: instanceStatusEnum("status").notNull().default("in_progress"),
-  deanReviewedById: integer("deanReviewedById").references(() => users.id, {
+
+  // Affairs (administrator) printed the packet.
+  printedById: integer("printedById").references(() => users.id, {
     onDelete: "set null",
   }),
-  deanReviewedAt: timestamp("deanReviewedAt", { withTimezone: true }),
-  deanRejectionReason: text("deanRejectionReason"),
+  printedAt: timestamp("printedAt", { withTimezone: true }),
+
+  // Director approved / rejected.
+  approvedById: integer("approvedById").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  approvedAt: timestamp("approvedAt", { withTimezone: true }),
+  approvalFile: text("approvalFile"),
+  rejectionReason: text("rejectionReason"),
 
   createdAt: timestamp("createdAt", { withTimezone: true })
     .notNull()
