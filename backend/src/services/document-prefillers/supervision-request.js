@@ -50,6 +50,7 @@ function buildInitialData({ instance, creatorUser }) {
     department: instance?.department?.name || "",
     requestType: "new",
     studentName: instance?.student?.name || "",
+    nationalId: instance?.student?.nationalId || "",
     registrationDate: toIsoDate(instance?.student?.registrationStart),
     creditHours:
       typeof instance?.student?.creditHours === "number"

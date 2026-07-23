@@ -4,6 +4,7 @@ const {
   text,
   timestamp,
   primaryKey,
+  boolean,
   check,
 } = require("drizzle-orm/pg-core");
 const { sql } = require("drizzle-orm");
@@ -24,6 +25,7 @@ const requestAssignments = pgTable(
     rejectionReason: text("rejectionReason"),
     year: integer("year"),
     month: integer("month"),
+    isExtended: boolean("isExtended"),
     createdAt: timestamp("createdAt", { withTimezone: true })
       .notNull()
       .defaultNow(),

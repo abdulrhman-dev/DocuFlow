@@ -15,7 +15,7 @@ import { useSearchStudents } from "./hooks/useSearchStudents";
 import { useSearchProfessors } from "./hooks/useSearchProfessors";
 import { translator as t } from "@data/translations/ar";
 import { useUser } from "@features/user/hooks/useUser";
-
+import StudentCard from "./StudentCard";
 
 const Container = styled.form`
   display: flex;
@@ -31,6 +31,12 @@ const Content = styled.div`
   /* padding-bottom: 2rem; */
   max-height: 50rem;
 `;
+const DescriptionColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+`
 
 const Footer = styled.footer`
   flex-shrink: 0;
@@ -51,6 +57,8 @@ const FormSection = styled.div`
 const SelectGroup = styled.div`
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
   gap: 2rem;
 `;
 
@@ -225,12 +233,14 @@ function WorkFlowForm() {
                       onQueryChange={setStudentQuery}
                       itemKey={(it) => it.code}
                       getInputValue={(it) => `${it.code} — ${it.name}`}
-                      renderItem={(it) => ({ primary: it.name, sub: `${it.code} — ${it.nationalId}` })}
+                      renderItem={(it) => ({ primary: it.name, sub: it.code })}
                       placeholder={t.workflow.studentPlaceholder}
                       showAvatar={false}
                     />
                   )}
                 />
+
+
               </div>
             )}
 
@@ -282,12 +292,20 @@ function WorkFlowForm() {
               </div>
             )}
           </SelectGroup>
+          <DescriptionColumn>
+            <Description >
+              {selectedWorkflowId
+                ? selectedWorkflow?.description
+                : t.messages.selectWorkflow}
+            </Description>
 
-          <Description>
-            {selectedWorkflowId
-              ? selectedWorkflow?.description
-              : t.messages.selectWorkflow}
-          </Description>
+            {student && (
+              <div style={{ marginTop: "1.2rem" }}>
+                <StudentCard student={student} />
+              </div>
+            )}
+          </DescriptionColumn>
+
         </FormSection>
       </Content>
 

@@ -29,6 +29,7 @@ class RequestService {
   static _withDefault = {
     instance: {
       with: {
+        student: true,
         workflow: { columns: { title: true } },
         documents: {
           columns: { id: true, stageOrder: true, templateId: true },
@@ -46,6 +47,7 @@ class RequestService {
         assignedToUserId: true,
         status: true,
         rejectionReason: true,
+        isExtended: true,
         year: true,
         month: true,
         createdAt: true,
@@ -107,6 +109,8 @@ class RequestService {
     // -------------------------------------------------------------------------
 
     plain.workflowTitle = plain.instance?.workflow?.title || null;
+    plain.student = plain.instance?.student || null;
+
     delete plain.instance;
     return plain;
   }
@@ -616,6 +620,8 @@ class RequestService {
       // ---- year / month: required only for department_manager -----------------
       let yearVal = null;
       let monthVal = null;
+      let extendedVal = null;
+
       if (user.role === "department_manager") {
         const rawYear = extra?.year;
         const rawMonth = extra?.month;
@@ -639,6 +645,8 @@ class RequestService {
           yearVal = null;
           monthVal = null;
         }
+
+        extendedVal = !!extra?.isExtended;
       }
       // -------------------------------------------------------------------------
 
@@ -660,6 +668,7 @@ class RequestService {
           rejectionReason: newStatus === "rejected" ? rejectionReason : null,
           year: yearVal,
           month: monthVal,
+          isExtended: extendedVal,
         })
         .where(
           and(

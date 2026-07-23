@@ -14,6 +14,7 @@ import { usePatchRequest } from "../hooks/usePatchRequest";
 import { translator as t } from "@data/translations/ar";
 import { useEffect } from "react";
 
+
 const Container = styled.form`
   display: flex;
   flex-direction: column;
@@ -153,6 +154,7 @@ function NewRequestForm() {
             )}
           />
         </NoteSection>
+
       </Content>
 
       <Footer>

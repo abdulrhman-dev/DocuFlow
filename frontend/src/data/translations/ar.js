@@ -44,6 +44,7 @@ export const translator = {
     respond: "الرد على الطلب",
     year: "السنة",
     month: "الشهر",
+    isExtended: "ممتد",
     yearRequired: "يرجى إدخال السنة",
     monthRequired: "يرجى إدخال الشهر",
     monthRange: "الشهر يجب أن يكون رقمًا بين 1 و 12",
@@ -254,5 +255,12 @@ export const translator = {
   roles: {
     reviewer: "لجنة الدراسات العليا",
     director: "مجلس الكلية",
+  },
+  student: {
+    nationalId: "الرقم القومي / جواز السفر",
+    gpa: "التقدير (GPA)",
+    creditHours: "عدد الساعات المعتمدة",
+    registrationStart: "بداية القيد",
+    registrationEnd: "نهاية القيد",
   },
 };

@@ -27,18 +27,15 @@ const Container = styled.form`
   height: 100%;
   gap: 3rem;
 `;
-
 const StyledHeading = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
 `;
-
 const Content = styled.div`
   flex: 1;
   overflow-y: auto;
 `;
-
 const Footer = styled.div`
   display: flex;
   flex-direction: column;
@@ -46,17 +43,16 @@ const Footer = styled.div`
   padding-top: 2rem;
   border-top: 1px solid var(--color-grey-200);
 `;
-
 const InlineFields = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
   gap: 1.2rem;
+  align-items: end;
   background-color: var(--color-grey-0);
   padding: 1.6rem;
   border: 1px solid var(--color-grey-200);
   border-radius: var(--border-radius-md);
 `;
-
 const Field = styled.label`
   display: flex;
   flex-direction: column;
@@ -64,7 +60,6 @@ const Field = styled.label`
   font-size: 1.2rem;
   color: var(--color-grey-700);
 `;
-
 const Input = styled.input`
   padding: 0.8rem 1rem;
   border: 1px solid var(--color-grey-300);
@@ -78,13 +73,22 @@ const Input = styled.input`
     outline-offset: -1px;
   }
 `;
-
-const ButtonsBox = styled.div`
+const CheckboxRow = styled.label`
   display: flex;
-  gap: 1.2rem;
   align-items: center;
+  gap: 0.6rem;
+  font-size: 1.35rem;
+  color: var(--color-grey-800);
+  cursor: pointer;
+  user-select: none;
+  padding: 0.6rem 0;
 `;
-
+const Checkbox = styled.input.attrs({ type: "checkbox" })`
+  width: 1.8rem;
+  height: 1.8rem;
+  accent-color: var(--color-brand-600);
+  cursor: pointer;
+`;
 const StatusMessage = styled.div`
   width: 100%;
   text-align: center;
@@ -93,51 +97,36 @@ const StatusMessage = styled.div`
   font-size: 1.4rem;
   font-weight: 500;
 
-  ${(props) =>
-    props.$status === "approved" &&
-    `
-    background-color: var(--color-green-100);
-    color: var(--color-green-700);
-    border: 1px solid var(--color-green-200);
-  `}
-
-  ${(props) =>
-    props.$status === "rejected" &&
-    `
-    background-color: var(--color-red-100);
-    color: var(--color-red-700);
-    border: 1px solid var(--color-red-200);
-  `}
+  ${(p) =>
+    p.$status === "approved" &&
+    "background-color: var(--color-green-100); color: var(--color-green-700); border: 1px solid var(--color-green-200);"}
+  ${(p) =>
+    p.$status === "rejected" &&
+    "background-color: var(--color-red-100); color: var(--color-red-700); border: 1px solid var(--color-red-200);"}
 `;
-
 const RequestId = styled.div`
   color: var(--color-grey-400);
   font-size: 1.2rem;
   margin-bottom: 2rem;
 `;
-
 const UserRow = styled.div`
   display: flex;
   align-items: center;
   gap: 1.2rem;
   margin: 2.5rem 0;
 `;
-
 const UserInfo = styled.div`
   display: flex;
   flex-direction: column;
 `;
-
 const UserName = styled.div`
   font-weight: 600;
   color: var(--color-grey-800);
 `;
-
 const UserDate = styled.div`
   color: var(--color-grey-500);
   font-size: 1.1rem;
 `;
-
 const Empty = styled.div`
   display: flex;
   align-items: center;
@@ -157,7 +146,7 @@ function RequestDetails() {
 
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
-
+  const [isExtended, setIsExtended] = useState(false);
 
   const isManager = currentUser?.role === "department_manager";
 
@@ -181,6 +170,7 @@ function RequestDetails() {
     return {
       year: Number.parseInt(year, 10),
       month: Number.parseInt(month, 10),
+      isExtended,
     };
   }
 
@@ -212,7 +202,6 @@ function RequestDetails() {
       },
     );
   }
-
   function handleReject(rejectionReason) {
     if (!validateManagerFields()) return;
     patchRequest({
@@ -295,6 +284,13 @@ function RequestDetails() {
                     placeholder="1-12"
                   />
                 </Field>
+                <CheckboxRow>
+                  <Checkbox
+                    checked={isExtended}
+                    onChange={(e) => setIsExtended(e.target.checked)}
+                  />
+                  {t.request.isExtended}
+                </CheckboxRow>
               </InlineFields>
             )}
 

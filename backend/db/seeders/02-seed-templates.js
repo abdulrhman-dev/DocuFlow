@@ -13,6 +13,10 @@ function templatesData() {
         default: "new",
       },
       studentName: { type: "string", title: "اسم الطالب", minLength: 1 },
+      nationalId: {
+        type: "string",
+        title: "الرقم القومي / جواز السفر",
+      },
       registrationDate: {
         type: "string",
         format: "date",
@@ -111,6 +115,11 @@ function templatesData() {
       {
         type: "Control",
         scope: "#/properties/studentName",
+        options: { readonly: true },
+      },
+      {
+        type: "Control",
+        scope: "#/properties/nationalId",
         options: { readonly: true },
       },
       {

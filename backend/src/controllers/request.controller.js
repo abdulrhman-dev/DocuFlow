@@ -16,7 +16,8 @@ async function createRequest(req, res) {
 }
 
 async function updateRequest(req, res) {
-  const { status, note, assignedTo, rejectionReason, year, month } = req.body;
+  const { status, note, assignedTo, rejectionReason, year, month, isExtended } =
+    req.body;
 
   const request = await RequestService.getRequestById(req.params.id);
 
@@ -46,7 +47,7 @@ async function updateRequest(req, res) {
       rejectionReason,
       req.user,
       null,
-      { year, month },
+      { year, month, isExtended },
     );
   } else {
     throw new AppError(ar.request.noPermissionToUpdate, 403);

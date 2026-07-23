@@ -21,6 +21,8 @@ function preprocess(data) {
   const src = data && typeof data === "object" ? data : {};
   const out = { ...src };
 
+  out.nationalId = src?.nationalId ?? "";
+
   out.supervisors = toArray(src.supervisors).map((s) => ({
     name: s?.name ?? "",
     degreeAndInstitution: s?.degreeAndInstitution ?? "",
