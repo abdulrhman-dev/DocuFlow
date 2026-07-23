@@ -85,20 +85,86 @@ function splitCells(rowXml) {
   chunks.push({ kind: "text", body: rowXml.slice(last) });
   return chunks;
 }
-function fillEmptyCell(tcXml, token) {
+
+// ---- NEW: cell padding + line-height helpers ----
+// Insert/replace <w:tcMar> inside a cell's <w:tcPr>, respecting the
+// CT_TcPrBase schema element order (tcMar must come after tcBorders/shd,
+// before vAlign/hideMark or the file becomes invalid).
+function addTcMarTopBottom(tcXml, top, bottom, side) {
+  const tcPrMatch = tcXml.match(/<w:tcPr>([\s\S]*?)<\/w:tcPr>/);
+  if (!tcPrMatch) return tcXml;
+  let inner = tcPrMatch[1].replace(/<w:tcMar>[\s\S]*?<\/w:tcMar>/, "");
+  const tcMarXml =
+    "<w:tcMar>" +
+    `<w:top w:w="${top}" w:type="dxa"/>` +
+    `<w:left w:w="${side}" w:type="dxa"/>` +
+    `<w:bottom w:w="${bottom}" w:type="dxa"/>` +
+    `<w:right w:w="${side}" w:type="dxa"/>` +
+    "</w:tcMar>";
+  if (inner.includes("<w:vAlign")) {
+    inner = inner.replace("<w:vAlign", tcMarXml + "<w:vAlign");
+  } else if (inner.includes("<w:hideMark")) {
+    inner = inner.replace("<w:hideMark", tcMarXml + "<w:hideMark");
+  } else {
+    inner = inner + tcMarXml;
+  }
+  return tcXml.replace(tcPrMatch[0], `<w:tcPr>${inner}</w:tcPr>`);
+}
+// Insert/replace <w:spacing> (line height) inside a paragraph's <w:pPr>,
+// respecting schema order (after bidi, before ind/jc).
+function addParagraphLineSpacing(pXml, line) {
+  const spacingXml = `<w:spacing w:line="${line}" w:lineRule="auto"/>`;
+  if (/<w:spacing\b[^/]*\/>/.test(pXml)) {
+    return pXml.replace(/<w:spacing\b[^/]*\/>/, spacingXml);
+  }
+  if (/<w:bidi\b[^/]*\/>/.test(pXml)) {
+    return pXml.replace(/(<w:bidi\b[^/]*\/>)/, `$1${spacingXml}`);
+  }
+  return pXml.replace(/(<w:pPr>)/, `$1${spacingXml}`);
+}
+// The source template's label/value paragraphs carry a legacy
+// <w:ind w:right="-709"/> (negative indent) used to nudge single-line
+// "label: value" text next to a colon. For multi-line wrapped content
+// (long supervisor names, degrees, signatures) that negative indent
+// widens the text frame past the visible cell border, so wrapped lines
+// spill outside the table. Strip it for padded/multi-line cells.
+function neutralizeIndent(pXml) {
+  return pXml.replace(/<w:ind\b[^/]*\/>/, "");
+}
+
+function fillEmptyCell(tcXml, token, padded) {
   const pMatch = tcXml.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/);
   if (!pMatch) return tcXml;
   const p = pMatch[0];
   const newP = p.replace(/<\/w:p>$/, `${tokenRun(`{${token}}`)}</w:p>`);
-  return tcXml.replace(p, newP);
+  let result = tcXml.replace(p, newP);
+  if (padded) {
+    // Breathing room from the cell borders (top/bottom were 0 in the
+    // source template, which is why long text touched the row lines).
+    result = addTcMarTopBottom(result, 60, 60, 100);
+    // Loosen line spacing so wrapped lines of long names/degrees don't
+    // pack tightly against each other (1.15x line height).
+    const pMatch2 = result.match(/<w:p\b[^>]*>[\s\S]*?<\/w:p>/);
+    if (pMatch2) {
+      let updatedP = addParagraphLineSpacing(pMatch2[0], 190);
+      updatedP = neutralizeIndent(updatedP);
+      result = result.replace(pMatch2[0], updatedP);
+    }
+  }
+  return result;
 }
+
 function editRow(rowXml, rowIdx, editor) {
   const chunks = splitCells(rowXml);
   let cellIdx = 0;
   for (const c of chunks) {
     if (c.kind === "cell") {
-      const tok = editor(rowIdx, cellIdx);
-      if (tok) c.body = fillEmptyCell(c.body, tok);
+      const res = editor(rowIdx, cellIdx);
+      if (res) {
+        const tok = typeof res === "string" ? res : res.token;
+        const padded = typeof res === "object" && !!res.padded;
+        c.body = fillEmptyCell(c.body, tok, padded);
+      }
       cellIdx++;
     }
   }
@@ -184,9 +250,11 @@ for (const c of chunks) {
       return null;
     });
   } else if (tableIdx === 5) {
+    // supervisors names table — padded so long name / degree+institution
+    // text doesn't touch the cell borders or pack lines together.
     c.body = wrapRowsAsLoop(c.body, 2, "supervisors", (_r, cIdx) => {
-      if (cIdx === 1) return "name";
-      if (cIdx === 2) return "degreeAndInstitution";
+      if (cIdx === 1) return { token: "name", padded: true };
+      if (cIdx === 2) return { token: "degreeAndInstitution", padded: true };
       return null;
     });
   } else if (tableIdx === 6) {
@@ -211,9 +279,10 @@ for (const c of chunks) {
       return null;
     });
   } else if (tableIdx === 9) {
+    // signatures table — same padding treatment.
     c.body = wrapRowsAsLoop(c.body, 2, "signatures", (_r, cIdx) => {
-      if (cIdx === 1) return "name";
-      if (cIdx === 2) return "signature";
+      if (cIdx === 1) return { token: "name", padded: true };
+      if (cIdx === 2) return { token: "signature", padded: true };
       return null;
     });
   }

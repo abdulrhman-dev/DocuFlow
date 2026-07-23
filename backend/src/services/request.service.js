@@ -639,6 +639,10 @@ class RequestService {
         if (!Number.isInteger(monthVal) || monthVal < 1 || monthVal > 12) {
           throw new AppError(ar.request.monthOutOfRange, 400);
         }
+
+        if (monthVal === 8) {
+          throw new AppError(ar.request.invalidMonth, 400);
+        }
       } else {
         // Non-managers must not smuggle these values in.
         if (extra?.year !== undefined || extra?.month !== undefined) {

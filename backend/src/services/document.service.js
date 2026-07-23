@@ -170,9 +170,9 @@ class DocumentService {
 
     let signatures = [];
 
-    if (user.role === "dean") {
-      signatures = await buildSignaturesForDocument(document);
-    }
+    // if (user.role === "dean") {
+    signatures = await buildSignaturesForDocument(document);
+    // }
 
     const mergedData = {
       ...(document.data || {}),

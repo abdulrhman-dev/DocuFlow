@@ -144,8 +144,11 @@ function RequestDetails() {
     requestId,
   });
 
-  const [year, setYear] = useState("");
-  const [month, setMonth] = useState("");
+  const [year, setYear] = useState(() => String(new Date().getFullYear()));
+  const [month, setMonth] = useState(() => {
+    const m = new Date().getMonth() + 1; // 1..12
+    return m === 8 ? "" : String(m);
+  });
   const [isExtended, setIsExtended] = useState(false);
 
   const isManager = currentUser?.role === "department_manager";
@@ -270,8 +273,9 @@ function RequestDetails() {
                     max={3000}
                     value={year}
                     onChange={(e) => setYear(e.target.value)}
-                    placeholder="2025"
+                    placeholder={String(new Date().getFullYear())}
                   />
+
                 </Field>
                 <Field>
                   <span>{t.request.month}</span>

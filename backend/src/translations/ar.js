@@ -41,6 +41,7 @@ const ar = {
     yearRequired: "يجب على مدير القسم إدخال السنة عند الرد على الطلب",
     monthRequired: "يجب على مدير القسم إدخال الشهر عند الرد على الطلب",
     monthOutOfRange: "الشهر يجب أن يكون بين 1 و 12",
+    invalidMonth: "لا يوجد لجنة قسم في شهر أغسطس",
   },
 
   // Instance messages
