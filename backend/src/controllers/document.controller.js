@@ -29,12 +29,18 @@ async function updateDocument(req, res, next) {
 }
 
 async function getDocumentPdf(req, res, next) {
+  const isPrint = req.query.print === "true" || req.query.print === "1";
+
   const { pdfBuffer, template } = await DocumentService.getDocumentPdf(
     req.user,
     req.params.id,
+    { print: isPrint },
   );
 
-  const rawName = (template?.title || `document-${req.params.id}`) + ".pdf";
+  const rawName =
+    (template?.title || `document-${req.params.id}`) +
+    (isPrint ? " (printed)" : "") +
+    ".pdf";
   const asciiName = rawName.replace(/[^\x20-\x7E]/g, "_");
   const utf8Name = encodeURIComponent(rawName);
 
@@ -45,6 +51,10 @@ async function getDocumentPdf(req, res, next) {
   );
   res.setHeader("Content-Length", pdfBuffer.length);
   res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
+  // Never let a browser cache the print variant across users.
+  if (isPrint) {
+    res.setHeader("Cache-Control", "no-store");
+  }
   res.send(pdfBuffer);
 }
 

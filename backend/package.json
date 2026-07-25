@@ -18,8 +18,10 @@
   "author": "Google LLC",
   "license": "Apache-2.0",
   "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "docxtemplater": "^3.65.2",
@@ -32,11 +34,10 @@
     "libreoffice-convert": "^1.6.1",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",
+    "pdf-lib": "^1.17.1",
     "pg": "^8.13.1",
     "pizzip": "^3.2.0",
-    "tmp-promise": "^3.0.3",
-    "archiver": "^7.0.1",
-    "pdf-lib": "^1.17.1"
+    "tmp-promise": "^3.0.3"
   },
   "devDependencies": {
     "apidoc": "^1.2.0",

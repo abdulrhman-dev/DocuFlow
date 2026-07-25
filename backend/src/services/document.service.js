@@ -8,6 +8,7 @@ const ar = require("../translations/ar");
 const { collectReadonlyViolations } = require("../utils/readonlyEnforcer");
 const { buildSignaturesForDocument } = require("./document-signatures");
 const { isEligibleForDepartment } = require("./research-plan");
+const { stampPrintFooter } = require("./pdf-footer");
 
 async function resolveDocumentAccess(document, user) {
   // Pull every access row the user has on requests of this instance
@@ -152,7 +153,7 @@ class DocumentService {
     return updated;
   }
 
-  static async getDocumentPdf(user, documentId) {
+  static async getDocumentPdf(user, documentId, opts = {}) {
     const document = await db.query.documents.findFirst({
       where: eq(schema.documents.id, Number(documentId)),
       with: { template: { columns: { fileUrl: true, title: true } } },
@@ -169,7 +170,6 @@ class DocumentService {
     }
 
     let signatures = [];
-
     signatures = await buildSignaturesForDocument(document);
 
     const mergedData = {
@@ -177,10 +177,24 @@ class DocumentService {
       signatures,
     };
 
-    const pdfBuffer = await DocxService.fillAndConvertToPdf(
+    let pdfBuffer = await DocxService.fillAndConvertToPdf(
       document.template,
       mergedData,
     );
+
+    // Only stamp the print footer when the caller explicitly asked for the
+    // print variant. The regular view path (Modal preview) NEVER stamps.
+    if (opts.print) {
+      const userName =
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+        user?.email ||
+        `#${user?.id}`;
+      pdfBuffer = await stampPrintFooter(pdfBuffer, {
+        userName,
+        printedAt: opts.printedAt || new Date(),
+      });
+    }
+
     return { pdfBuffer, template: document.template };
   }
 }

@@ -141,8 +141,15 @@ class AffairsService {
     for (const d of sorted) {
       try {
         const { pdfBuffer } = await DocumentService.getDocumentPdf(
-          { id: user.id, role: user.role },
+          {
+            id: user.id,
+            role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+          },
           d.id,
+          { print: true, printedAt: new Date() },
         );
         const src = await PDFDocument.load(pdfBuffer);
         const pages = await merged.copyPages(src, src.getPageIndices());
@@ -196,9 +203,17 @@ class AffairsService {
       for (const d of sorted) {
         try {
           const { pdfBuffer } = await DocumentService.getDocumentPdf(
-            { id: user.id, role: user.role },
+            {
+              id: user.id,
+              role: user.role,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              email: user.email,
+            },
             d.id,
+            { print: true, printedAt: new Date() },
           );
+
           const src = await PDFDocument.load(pdfBuffer);
           const pages = await merged.copyPages(src, src.getPageIndices());
           pages.forEach((p) => merged.addPage(p));

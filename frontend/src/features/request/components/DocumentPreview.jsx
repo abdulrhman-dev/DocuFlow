@@ -1,10 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { HiPrinter, HiXMark, HiArrowDownTray } from "react-icons/hi2";
+import { Viewer, Worker } from "@react-pdf-viewer/core";
+
+import "@react-pdf-viewer/core/lib/styles/index.css";
 
 import Spinner from "@components/Spinner";
 import Button from "@components/Button";
 import { useGetDocPdf } from "../hooks/useGetDocPdf";
+import { API_URL } from "@utils/consts";
 import { translator as t } from "@data/translations/ar";
 
 const PreviewContainer = styled.div`
@@ -33,7 +37,7 @@ const ButtonGroup = styled.div`
   gap: 1rem;
 `;
 
-const IframeContainer = styled.div`
+const ViewerContainer = styled.div`
   flex: 1;
   border: 1px solid var(--color-grey-200);
   border-radius: var(--border-radius-sm);
@@ -41,12 +45,6 @@ const IframeContainer = styled.div`
   background-color: var(--color-grey-100);
   position: relative;
   min-height: 50rem;
-`;
-
-const StyledIframe = styled.iframe`
-  width: 100%;
-  height: 100%;
-  border: none;
 `;
 
 const ErrorMessage = styled.div`
@@ -58,15 +56,39 @@ const ErrorMessage = styled.div`
   font-size: 1.6rem;
 `;
 
+// Must match the installed pdfjs-dist version exactly.
+const PDF_WORKER_URL = "https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+
+async function fetchPrintablePdfUrl(docId) {
+    const token = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/document/${docId}/pdf?print=true`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+        let msg = "Failed to fetch printable PDF";
+        try {
+            const j = await res.json();
+            msg = j.message || msg;
+        } catch (_) { }
+        throw new Error(msg);
+    }
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+}
 
 function DocumentPreview({ docId, onClose }) {
     const id = docId;
 
+    // Preview URL (viewing, no footer, no print stamp).
     const { url, filename, isPending, error } = useGetDocPdf({ docId: id });
-    const iframeRef = useRef(null);
-    // A second hidden iframe used only for silent printing so the on-screen
-    // preview iframe doesn't lose scroll position.
+
+    // Hidden iframe used for silent printing. It fetches the *print* variant
+    // from the backend (footer-stamped) and calls contentWindow.print().
+    // Kept as a bare <iframe>, not the PDF viewer itself, since the viewer
+    // has no toolbar/print UI at all now — this is the ONLY print path.
     const printFrameRef = useRef(null);
+    const printBlobUrlRef = useRef(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     useEffect(() => {
         return () => {
@@ -74,47 +96,63 @@ function DocumentPreview({ docId, onClose }) {
                 printFrameRef.current.remove();
                 printFrameRef.current = null;
             }
+            if (printBlobUrlRef.current) {
+                URL.revokeObjectURL(printBlobUrlRef.current);
+                printBlobUrlRef.current = null;
+            }
         };
     }, []);
 
-    function handlePrint() {
-        if (!url) return;
+    async function handlePrint() {
+        try {
+            setIsPrinting(true);
 
-        // Reuse hidden iframe if we already created it.
-        if (printFrameRef.current) {
-            printFrameRef.current.remove();
-            printFrameRef.current = null;
+            // Clean up any previous print attempt.
+            if (printFrameRef.current) {
+                printFrameRef.current.remove();
+                printFrameRef.current = null;
+            }
+            if (printBlobUrlRef.current) {
+                URL.revokeObjectURL(printBlobUrlRef.current);
+                printBlobUrlRef.current = null;
+            }
+
+            const printUrl = await fetchPrintablePdfUrl(id);
+            printBlobUrlRef.current = printUrl;
+
+            const frame = document.createElement("iframe");
+            frame.style.position = "fixed";
+            frame.style.right = "0";
+            frame.style.bottom = "0";
+            frame.style.width = "0";
+            frame.style.height = "0";
+            frame.style.border = "0";
+            frame.src = printUrl;
+            document.body.appendChild(frame);
+            printFrameRef.current = frame;
+
+            frame.onload = () => {
+                setTimeout(() => {
+                    try {
+                        frame.contentWindow.focus();
+                        frame.contentWindow.print();
+                    } catch (_err) {
+                        window.open(printUrl, "_blank");
+                    }
+                }, 250);
+            };
+        } catch (e) {
+            // eslint-disable-next-line no-alert
+            alert(e.message);
+        } finally {
+            setIsPrinting(false);
         }
-
-        const frame = document.createElement("iframe");
-        frame.style.position = "fixed";
-        frame.style.right = "0";
-        frame.style.bottom = "0";
-        frame.style.width = "0";
-        frame.style.height = "0";
-        frame.style.border = "0";
-        frame.src = url;
-        document.body.appendChild(frame);
-        printFrameRef.current = frame;
-
-        frame.onload = () => {
-            // Give the embedded PDF a tick to be ready in Chromium/Firefox.
-            setTimeout(() => {
-                try {
-                    frame.contentWindow.focus();
-                    frame.contentWindow.print();
-                } catch (err) {
-                    // Fallback: open in a new tab, which invariably supports print.
-                    window.open(url, "_blank");
-                }
-            }, 250);
-        };
     }
 
-    function handleDownload() {
-        if (!url) return;
+    async function handleDownload() {
+        const printUrl = await fetchPrintablePdfUrl(id);
         const a = document.createElement("a");
-        a.href = url;
+        a.href = printUrl;
         a.download = filename || `document-${id}.pdf`;
         document.body.appendChild(a);
         a.click();
@@ -132,6 +170,7 @@ function DocumentPreview({ docId, onClose }) {
                         $variation="secondary"
                         size="small"
                         onClick={handlePrint}
+                        loading={isPrinting}
                         icon={<HiPrinter />}
                     >
                         {t.documents.print}
@@ -157,13 +196,14 @@ function DocumentPreview({ docId, onClose }) {
                 )}
             </Toolbar>
 
-            <IframeContainer>
-                <StyledIframe
-                    ref={iframeRef}
-                    src={url}
-                    title="Document Preview"
-                />
-            </IframeContainer>
+            <ViewerContainer>
+                {url && (
+                    <Worker workerUrl={PDF_WORKER_URL}>
+                        {/* key forces a full remount when the blob URL changes */}
+                        <Viewer key={url} fileUrl={url} theme="light" />
+                    </Worker>
+                )}
+            </ViewerContainer>
         </PreviewContainer>
     );
 }

@@ -72,6 +72,7 @@ const ar = {
     readonlyViolation: (paths) => `لا يمكن تعديل الحقول للقراءة فقط: ${paths}`,
     planNotEligible:
       "الهدف/المحور المختار غير مسموح به لهذا القسم — اختر من القائمة المعروضة",
+    printedBy: "تم طباعة المستند بواسطة",
   },
 
   // Department messages
