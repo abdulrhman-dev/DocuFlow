@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { searchDirectorInstances } from "../services/director";
 
-export function useDirectorSearch({ enabled = true, initialQuery = "" } = {}) {
+export function useDirectorSearch({
+  enabled = true,
+  initialQuery = "",
+  initialMode = "text",
+} = {}) {
   const [query, setQuery] = useState(initialQuery);
+  const [mode, setMode] = useState(initialMode);
   const [debounced, setDebounced] = useState(initialQuery);
 
   useEffect(() => {
@@ -12,8 +17,8 @@ export function useDirectorSearch({ enabled = true, initialQuery = "" } = {}) {
   }, [query]);
 
   const { data, isFetching } = useQuery({
-    queryKey: ["director-instances-search", debounced],
-    queryFn: () => searchDirectorInstances({ q: debounced }),
+    queryKey: ["director-instances-search", mode, debounced],
+    queryFn: () => searchDirectorInstances({ q: debounced, mode }),
     enabled,
     staleTime: 10_000,
   });
@@ -21,7 +26,9 @@ export function useDirectorSearch({ enabled = true, initialQuery = "" } = {}) {
   return {
     instances: data || [],
     isFetching,
-    setQuery,
     query,
+    setQuery,
+    mode,
+    setMode,
   };
 }

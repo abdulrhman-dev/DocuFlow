@@ -113,28 +113,32 @@ module.exports = {
       i++;
       const dept = depMap.get(name);
 
+      // Manager: "رئيس قسم <departmentName>"
       const manager = await upsertUser({
         email: `manager${i}@college.edu`,
-        firstName: "مدير",
-        lastName: `القسم ${i}`,
+        firstName: "رئيس قسم",
+        lastName: name,
         role: "department_manager",
         departmentId: dept.id,
         degree: null,
       });
+
+      // Affairs (administrator): "موظف شئون قسم <departmentName>"
       const affairs = await upsertUser({
         email: `affairs${i}@college.edu`,
-        firstName: "شئون",
-        lastName: `الدراسات ${i}`,
+        firstName: "موظف شئون قسم",
+        lastName: name,
         role: "administrator",
         departmentId: dept.id,
         degree: null,
       });
-      // Three professors per department so multi-approval has candidates.
+
+      // Three professors per department: "أستاذ <k> <departmentName>"
       for (let k = 1; k <= 3; k++) {
         await upsertUser({
           email: `professor${i}_${k}@college.edu`,
           firstName: `أستاذ ${k}`,
-          lastName: `القسم ${i}`,
+          lastName: name,
           role: "professor",
           departmentId: dept.id,
           degree: "أستاذ - جامعة القاهرة",

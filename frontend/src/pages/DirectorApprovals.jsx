@@ -80,16 +80,34 @@ const FieldLabel = styled.label`
   margin-bottom: 0.6rem;
 `;
 
-const Description = styled.div`
-  width: 100%;
-  min-height: 12rem;
-  padding: 1.6rem;
-  border: 1px solid var(--color-brand-600);
-  border-radius: var(--border-radius-md);
+/* Search row: the autocomplete grows to fill the space, the mode select
+   sits next to it. On narrow screens they stack. */
+const SearchRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: stretch;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ModeSelect = styled.select`
+  min-width: 18rem;
+  padding: 1.2rem 1.4rem;
+  border: 2px solid var(--color-grey-300);
+  border-radius: var(--border-radius-sm);
   background-color: var(--color-grey-0);
   font-size: 1.4rem;
-  line-height: 1.6;
   color: var(--color-grey-700);
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
 `;
 
 const SelectionStack = styled.div`
@@ -99,6 +117,7 @@ const SelectionStack = styled.div`
   overflow-y: auto;
   max-height: 58rem;
   background-color: var(--color-grey-100);
+  padting: 1rem;
   padding: 1rem;
   border-radius: 0.7rem;
 `;
@@ -116,7 +135,7 @@ const ButtonRow = styled.div`
   margin-top: auto;
 `;
 
-/* ---------- drop zone (same design language as previous turn) ---------- */
+/* ---------- drop zone (unchanged) ---------- */
 
 const Dropzone = styled.label`
   position: relative;
@@ -281,6 +300,8 @@ function DirectorApprovals() {
         instances: results,
         isFetching: isSearching,
         setQuery,
+        mode,
+        setMode,
     } = useDirectorSearch({ enabled: true });
 
     const { approve, isPending: isApproving } = useApproveDirector();
@@ -299,6 +320,17 @@ function DirectorApprovals() {
         if (!inst) return;
         if (selectedInstances.some((s) => s.id === inst.id)) return;
         setSelectedInstances((prev) => [...prev, inst]);
+    }
+
+    // Bulk-add: used for the ids mode "add all matches" flow.
+    function addManyInstances(list) {
+        if (!Array.isArray(list) || !list.length) return;
+        setSelectedInstances((prev) => {
+            const seen = new Set(prev.map((s) => s.id));
+            const additions = list.filter((it) => it && !seen.has(it.id));
+            if (!additions.length) return prev;
+            return [...prev, ...additions];
+        });
     }
 
     function removeInstance(id) {
@@ -347,35 +379,99 @@ function DirectorApprovals() {
 
     const canApprove = selectedIds.length > 0 && !!file;
 
+    /* -------- mode change handler -------- */
+    function handleModeChange(e) {
+        const next = e.target.value === "ids" ? "ids" : "text";
+        setMode(next);
+        setQuery(""); // reset query when switching modes to avoid stale queries
+    }
+
+    /* -------- "ids" mode: add all matches with one click -------- */
+    function handleAddAllIds() {
+        if (!results?.length) {
+            toast.error(t.director.empty);
+            return;
+        }
+        addManyInstances(results);
+        toast.success(
+            `${t.director.selected}: +${results.length}`,
+        );
+    }
+
     return (
         <Container onSubmit={handleApprove}>
             <Content>
                 <StyledHeading as="h1">{t.director.inbox}</StyledHeading>
 
-                <FormSection>
+                <FormSection >
                     {/* ---------- Left column: search + selected cards ---------- */}
                     <Column>
                         <div>
                             <FieldLabel>{t.director.search}</FieldLabel>
-                            <Autocomplete
-                                value={null}
-                                onChange={addInstance}
-                                items={options}
-                                isLoading={isSearching}
-                                onQueryChange={setQuery}
-                                itemKey={(it) => it.id}
-                                getInputValue={(it) =>
-                                    `${it.workflow?.title || ""} — ${it.student?.name || it.studentId
-                                    }`
-                                }
-                                renderItem={(it) => ({
-                                    primary: `${it.workflow?.title || ""} — ${it.student?.name || it.studentId
-                                        }`,
-                                    sub: `#${it.id} · ${it.department?.name || ""}`,
-                                })}
-                                placeholder={t.director.search}
-                                showAvatar={false}
-                            />
+
+                            <SearchRow>
+                                <Autocomplete
+                                    value={null}
+                                    onChange={addInstance}
+                                    items={options}
+                                    isLoading={isSearching}
+                                    onQueryChange={setQuery}
+                                    itemKey={(it) => it.id}
+                                    getInputValue={(it) =>
+                                        mode === "ids"
+                                            ? `#${it.id}`
+                                            : `${it.workflow?.title || ""} — ${it.student?.name || it.studentId
+                                            }`
+                                    }
+                                    renderItem={(it) => ({
+                                        primary:
+                                            mode === "ids"
+                                                ? `#${it.id} · ${it.workflow?.title || ""}`
+                                                : `${it.workflow?.title || ""} — ${it.student?.name || it.studentId
+                                                }`,
+                                        sub:
+                                            mode === "ids"
+                                                ? `${it.student?.name || it.studentId} · ${it.department?.name || ""}`
+                                                : `#${it.id} · ${it.department?.name || ""}`,
+                                    })}
+                                    placeholder={
+                                        mode === "ids"
+                                            ? t.director.idsPlaceholder
+                                            : t.director.textPlaceholder
+                                    }
+                                    showAvatar={false}
+                                />
+
+                                <ModeSelect
+                                    value={mode}
+                                    onChange={handleModeChange}
+                                    aria-label={t.director.searchModeLabel}
+                                    title={t.director.searchModeLabel}
+                                >
+                                    <option value="text">
+                                        {t.director.modeText}
+                                    </option>
+                                    <option value="ids">
+                                        {t.director.modeIds}
+                                    </option>
+                                </ModeSelect>
+                            </SearchRow>
+
+                            {mode === "ids" && (
+                                <div style={{ marginTop: "0.8rem", display: "flex", gap: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
+                                    <small style={{ color: "var(--color-grey-500)", fontSize: "1.2rem" }}>
+                                        {t.director.idsHint}
+                                    </small>
+                                    <Button
+                                        type="button"
+                                        $variation="secondary"
+                                        onClick={handleAddAllIds}
+                                        disabled={!results?.length}
+                                    >
+                                        {t.director.addAllMatches}
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <div>

@@ -4,9 +4,17 @@ function tk() {
   return localStorage.getItem("token");
 }
 
-export async function searchDirectorInstances({ q = "" } = {}) {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : "";
-  const data = await apiRequest(`/director/instance${qs}`, {
+/**
+ * @param {object} args
+ * @param {string} [args.q]     search text (or comma-separated ids when mode="ids")
+ * @param {"text"|"ids"} [args.mode]  default "text"
+ */
+export async function searchDirectorInstances({ q = "", mode = "text" } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  if (mode === "ids") params.set("mode", "ids");
+  const qs = params.toString();
+  const data = await apiRequest(`/director/instance${qs ? `?${qs}` : ""}`, {
     method: "GET",
     token: tk(),
   });

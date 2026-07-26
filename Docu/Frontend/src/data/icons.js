@@ -1,0 +1,41 @@
+import {
+  HiOutlineCalendarDays,
+  HiOutlineCog6Tooth,
+  HiOutlineHome,
+  HiOutlineHomeModern,
+  HiOutlineInbox,
+  HiOutlineRectangleStack,
+  HiOutlineUsers,
+  HiOutlineDocumentCheck,
+  HiOutlinePrinter,
+} from "react-icons/hi2";
+import { LuPen } from "react-icons/lu";
+import { PiTelegramLogo } from "react-icons/pi";
+import {
+  MdOutlineWidgets,
+  MdArrowDropDown,
+  MdOutlineEmail,
+} from "react-icons/md";
+import { LiaPlusSquare } from "react-icons/lia";
+import { SlLogout } from "react-icons/sl";
+import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
+
+export const icons = {
+  home: HiOutlineHome,
+  calendar: HiOutlineCalendarDays,
+  cabin: HiOutlineHomeModern,
+  users: HiOutlineUsers,
+  settings: HiOutlineCog6Tooth,
+  new: LiaPlusSquare,
+  workflow: MdOutlineWidgets,
+  pen: LuPen,
+  submitted: PiTelegramLogo,
+  logout: SlLogout,
+  inbox: HiOutlineInbox,
+  myWorkflows: HiOutlineRectangleStack,
+  dropdownFilter: MdArrowDropDown,
+  email: MdOutlineEmail,
+  form: HiOutlineClipboardDocumentCheck,
+  printer: HiOutlinePrinter,
+  approve: HiOutlineDocumentCheck,
+};

@@ -51,7 +51,33 @@ const DIRECTOR_WITH = {
 
 class DirectorService {
   // Search only "printed" (waiting director) instances.
-  static async search({ q = "" } = {}) {
+  // Search only "printed" (waiting director) instances.
+  //
+  // Two modes:
+  //   mode = "text"  -> ILIKE search across student.name / student.code /
+  //                     workflow.title (default; existing behavior).
+  //   mode = "ids"   -> `q` is a comma-separated list of numeric workflow-
+  //                     instance ids; returns every matching printed
+  //                     instance in one shot.
+  static async search({ q = "", mode = "text" } = {}) {
+    // -------- id-list mode --------
+    if (mode === "ids") {
+      const ids = String(q || "")
+        .split(",")
+        .map((s) => Number(String(s).trim()))
+        .filter((n) => Number.isInteger(n) && n > 0);
+      if (!ids.length) return [];
+      return db.query.workflowInstances.findMany({
+        where: and(
+          eq(schema.workflowInstances.status, "printed"),
+          inArray(schema.workflowInstances.id, ids),
+        ),
+        with: DIRECTOR_WITH,
+        orderBy: [desc(schema.workflowInstances.updatedAt)],
+      });
+    }
+
+    // -------- text mode (existing behavior) --------
     if (!q || !q.trim()) {
       return db.query.workflowInstances.findMany({
         where: eq(schema.workflowInstances.status, "printed"),
@@ -83,6 +109,8 @@ class DirectorService {
           ),
         ),
       );
+
+    if (!matchingIds.length) return [];
 
     return db.query.workflowInstances.findMany({
       where: inArray(

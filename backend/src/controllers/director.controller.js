@@ -2,7 +2,10 @@ const asyncDec = require("../utils/asyncDec");
 const DirectorService = require("../services/director.service");
 
 async function search(req, res) {
-  const instances = await DirectorService.search({ q: req.query.q });
+  const instances = await DirectorService.search({
+    q: req.query.q,
+    mode: req.query.mode === "ids" ? "ids" : "text",
+  });
   res.json({ status: "success", data: { instances } });
 }
 

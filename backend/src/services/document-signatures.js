@@ -31,6 +31,10 @@ const ARABIC_MONTHS = [
   "ديسمبر",
 ];
 
+function arabicMonth(m) {
+  return Number.isInteger(m) && m >= 1 && m <= 12 ? ARABIC_MONTHS[m - 1] : "";
+}
+
 /**
  * Build the "signatures" array for a document.
  *
@@ -38,28 +42,22 @@ const ARABIC_MONTHS = [
  *   1. First row = the creator of the request that produced this document
  *      (i.e. the user who filled it in at creation time). Uses the earliest
  *      request at document.stageOrder as the source of truth.
- *   2. Then every approved RequestAssignment on stages >= document.stageOrder
- *      (this matches the "later-stage approvals feed back into earlier docs"
- *      behaviour you wanted).
- *   3. Managers get the لجنة line in the name column.
- *   4. Rows are de-duplicated by userId+stageOrder so the creator isn't
- *      repeated if they also happen to be a downstream approver on the same
- *      stage.
- *
- * Returns [{ name, signature }, ...]:
- *   name      -> "الاسم" column (لجنة … for managers, plain name otherwise)
- *   signature -> "التوقيع" column ("<fullName> تم موافقة الطلب بتاريخ <date>")
- *
- * For the CREATOR row the signature date is the request.createdAt (creation
- * time) and there is no approval status; we still render the same visual
- * shape so the table stays consistent.
+ *   2. Then every approved RequestAssignment on stages >= document.stageOrder.
+ *   3. The "name" column is role-dependent:
+ *        professor            -> full name (unchanged)
+ *        department_manager   -> "مجلس قسم {dept} شهر {monthAr} {year}" + " ممتد" when isExtended
+ *        administrator        -> "شئون الدرسات العليا {dept} (مراجعة)"
+ *        reviewer             -> "لجنة الدرسات العليا"
+ *        director             -> "مجلس الكلية"
+ *   4. The "signature" column is always
+ *        "<fullName> تم موافقة الطلب بتاريخ <date>"
+ *      For the creator row we use request.sentAt || request.createdAt.
+ *   5. Rows are de-duplicated by userId+stageOrder.
  */
 async function buildSignaturesForDocument(document, tx) {
   const conn = tx || db;
 
   // ---------- 1) Creator: request author at this document's stage ----------
-  // We may have picked the wrong stage above (findFirst without a stage filter
-  // would return the earliest request on the instance). Explicit filter:
   const creatorRequests = await conn.query.requests.findMany({
     where: eq(schema.requests.instanceId, document.instanceId),
     columns: {
@@ -84,6 +82,7 @@ async function buildSignaturesForDocument(document, tx) {
       updatedAt: schema.requestAssignments.updatedAt,
       year: schema.requestAssignments.year,
       month: schema.requestAssignments.month,
+      isExtended: schema.requestAssignments.isExtended,
       stageOrder: schema.stages.stageOrder,
     })
     .from(schema.requestAssignments)
@@ -104,7 +103,7 @@ async function buildSignaturesForDocument(document, tx) {
     (a) => a.stageOrder >= document.stageOrder,
   );
 
-  // ---------- 3) Load every user we'll render ----------
+  // ---------- 3) Load every user we'll render (with departmentId) ----------
   const userIds = new Set(relevantApprovals.map((a) => a.assignedToUserId));
   if (creatorReq?.userId) userIds.add(creatorReq.userId);
   const users = userIds.size
@@ -115,26 +114,59 @@ async function buildSignaturesForDocument(document, tx) {
           firstName: true,
           lastName: true,
           role: true,
+          departmentId: true,
           academicDegreeAndInstitution: true,
         },
       })
     : [];
   const usersById = new Map(users.map((u) => [u.id, u]));
 
-  function makeRow({ user, dateSource, year, month }) {
-    const name = fullName(user);
-    const dateStr = toArabicDate(dateSource);
-    const signatureCell = `${name} تم موافقة الطلب بتاريخ ${dateStr}`;
+  // ---------- 4) Load department names once (only what we need) ----------
+  const deptIds = new Set(
+    users.map((u) => u.departmentId).filter((x) => Number.isInteger(x)),
+  );
+  const depts = deptIds.size
+    ? await conn.query.departments.findMany({
+        where: inArray(schema.departments.id, Array.from(deptIds)),
+        columns: { id: true, name: true },
+      })
+    : [];
+  const deptNameById = new Map(depts.map((d) => [d.id, d.name || ""]));
 
-    let nameCell = name;
-    if (user?.role === "department_manager") {
-      const monthLabel =
-        Number.isInteger(month) && month >= 1 && month <= 12
-          ? ARABIC_MONTHS[month - 1]
-          : "";
-      const yearLabel = Number.isInteger(year) ? year : "";
-      nameCell = `لجنة شهر ${monthLabel} سنة ${yearLabel}`.trim();
+  function nameCellFor(user, { year, month, isExtended }) {
+    const deptName =
+      user?.departmentId != null
+        ? deptNameById.get(user.departmentId) || ""
+        : "";
+
+    switch (user?.role) {
+      case "department_manager": {
+        const monthLabel = arabicMonth(month);
+        const yearLabel = Number.isInteger(year) ? year : "";
+        // "مجلس قسم <dept> شهر <monthAr> <year>"
+        const base =
+          `مجلس قسم ${deptName} شهر${monthLabel ? " " + monthLabel : ""}` +
+          (yearLabel ? ` ${yearLabel}` : "");
+        return isExtended ? `${base} ممتد` : base.trim();
+      }
+      case "administrator":
+        // "شئون الدرسات العليا <dept> (مراجعة)"
+        return `شئون الدرسات العليا ${deptName} (مراجعة)`.trim();
+      case "reviewer":
+        return "لجنة الدرسات العليا";
+      case "director":
+        return "مجلس الكلية";
+      case "professor":
+      default:
+        return fullName(user);
     }
+  }
+
+  function makeRow({ user, dateSource, year, month, isExtended }) {
+    const signerName = fullName(user);
+    const dateStr = toArabicDate(dateSource);
+    const signatureCell = `${signerName} تم موافقة الطلب بتاريخ ${dateStr}`;
+    const nameCell = nameCellFor(user, { year, month, isExtended });
     return { name: nameCell, signature: signatureCell };
   }
 
@@ -150,11 +182,10 @@ async function buildSignaturesForDocument(document, tx) {
       rows.push(
         makeRow({
           user: creator,
-          // Prefer sentAt (the actual "signed" moment) but fall back to
-          // createdAt when the creator hasn't sent the request yet.
           dateSource: creatorReq.sentAt || creatorReq.createdAt,
           year: null,
           month: null,
+          isExtended: false,
         }),
       );
     }
@@ -173,6 +204,7 @@ async function buildSignaturesForDocument(document, tx) {
         dateSource: a.updatedAt,
         year: a.year,
         month: a.month,
+        isExtended: !!a.isExtended,
       }),
     );
   }

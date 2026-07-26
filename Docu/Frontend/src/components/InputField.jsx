@@ -1,0 +1,125 @@
+import styled from "styled-components";
+import Select from "./inputs/Select";
+
+const Container = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1 1 0;
+
+  & input,
+  & select {
+    border: 1px solid var(--color-grey-300);
+    background-color: var(--color-grey-50);  
+    color: var(--color-grey-700);
+    border-radius: var(--border-radius-sm);
+    padding: 0.8rem 1.2rem;
+    box-shadow: var(--shadow-sm);
+
+    width: 100%;
+    max-width: 100%;
+  }
+
+  & input::placeholder {
+    color: var(--color-grey-400);
+  }
+
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-grey-300);
+  border-radius: 8px;
+  font-size: 1rem;
+  min-height: 120px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  background-color: var(--color-grey-50);   
+  color: var(--color-grey-700);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+  }
+
+  &::placeholder {
+    color: var(--color-grey-400);
+  }
+`;
+
+const Label = styled.label`
+  display: block;
+  text-transform: capitalize;
+  color: var(--color-grey-600);
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+`;
+
+
+const Error = styled.p`
+  color: var(--color-red-700);
+  font-size: 1.2rem;
+  margin-top: 0.25rem;
+`;
+
+function InputField({
+  id,
+  error,
+  type,
+  register,
+  validate,
+  label,
+  placeholder,
+  options = [],
+  ...props
+}) {
+  return (
+    <Container $error={!!error}>
+      {label && <Label htmlFor={id}>{label}</Label>}
+
+      {type === "textArea" ? (
+        <TextArea
+          {...register?.(id, { validate })}
+          id={id}
+          aria-invalid={!!error}
+          autoComplete="on"
+          placeholder={placeholder}
+        />
+      ) : type === "select" ? (
+        <Select
+          {...register?.(id, { validate })}
+          id={id}
+          aria-invalid={!!error}
+          options={options}
+          placeholder={placeholder}
+          {...props}
+        >
+          <option value="" disabled hidden>
+            {placeholder || "Select..."}
+          </option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </Select>
+      ) : (
+        <input
+          {...register?.(id, { validate })}
+          {...props}
+          type={type}
+          id={id}
+          aria-invalid={!!error}
+          autoComplete="on"
+          placeholder={placeholder}
+        />
+      )}
+
+      {error?.length > 0 && <Error>{error}</Error>}
+    </Container>
+  );
+}
+
+export default InputField;
+export { Label, Error };

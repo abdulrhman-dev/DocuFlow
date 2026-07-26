@@ -91,9 +91,17 @@ const AXES = [
     name: "الطاقة",
     goals: [
       {
+        code: "ع2",
+        name: "زيادة الاعتماد على الموارد المحلية",
+        departments: ["Mining, Petroleum & Metallurgical"],
+      },
+      {
         code: "ع3",
         name: "خفض كثافة استهلاك الطاقة",
-        departments: ["Mining, Petroleum & Metallurgical"],
+        departments: [
+          "Mechanical Design and Production",
+          "Mechanical Power Engineering",
+        ],
       },
       {
         code: "ع5",
@@ -102,9 +110,8 @@ const AXES = [
           "Engineering Mathematics and Physics",
           "Architectural Engineering",
           "Structural Engineering",
-          "Electronics and Communications",
-          "Mechanical Design and Production",
           "Electrical Power Engineering",
+          "Mechanical Power Engineering",
         ],
       },
       {
@@ -114,9 +121,9 @@ const AXES = [
           "Engineering Mathematics and Physics",
           "Architectural Engineering",
           "Structural Engineering",
-          "Electronics and Communications",
-          "Mechanical Power Engineering",
           "Electrical Power Engineering",
+          "Mechanical Power Engineering",
+          "Mechanical Design and Production",
         ],
       },
       {
@@ -124,20 +131,14 @@ const AXES = [
         name: "تعظيم الاستفادة من تكنولوجيا الكتلة الحيوية والطحالب وطاقة الأمواج والمد والجزر وطاقة باطن الأرض",
         departments: [
           "Engineering Mathematics and Physics",
-          "Architectural Engineering",
-          "Structural Engineering",
-          "Electronics and Communications",
-          "Mechanical Power Engineering",
-          "Electrical Power Engineering",
+          "Irrigation and Hydraulics",
+          "Chemical Engineering",
         ],
       },
       {
         code: "ع8",
         name: "تعظيم الاستفادة من التكنولوجيا الهجينة",
-        departments: [
-          "Electronics and Communications",
-          "Electrical Power Engineering",
-        ],
+        departments: ["Electrical Power Engineering"],
       },
     ],
   },
