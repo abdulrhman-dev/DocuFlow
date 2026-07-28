@@ -64,7 +64,7 @@ function LoginForm() {
           <InputField
             label={t.user.password}
             placeholder={t.auth.enterPassword}
-            defaultValue="1234"
+            defaultValue="password123"
             register={register}
             error={errors?.password?.message}
             type="password"
