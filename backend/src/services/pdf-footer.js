@@ -3,9 +3,16 @@
  * The footer is added ONLY when the caller asks for a print variant — the
  * regular view PDF is never modified.
  *
- * Uses pdf-lib + a bundled Unicode font (Noto Sans Arabic) so both the
- * Latin timestamp and Arabic user names render correctly regardless of
- * what LibreOffice put in the source doc.
+ * Uses pdf-lib + a bundled Unicode font (Noto Sans Arabic / simpo) so both the
+ * Latin timestamp and Arabic user names render correctly regardless of what
+ * LibreOffice put in the source doc.
+ *
+ * Layout:
+ *
+ *   left column (2 lines)                       right column (2 lines)
+ *   ---------------------                       -----------------------
+ *   Printed by: <userName>                      #<instanceId> <workflowTitle>
+ *   <YYYY-MM-DD hh:mm AM/PM>                    <studentName> - <studentCode>
  */
 const path = require("path");
 const fs = require("fs");
@@ -34,32 +41,35 @@ function loadFontBytes() {
 }
 
 function formatFooterDate(d = new Date()) {
-  // A locale-neutral, unambiguous timestamp: "YYYY-MM-DD hh:mm AM/PM".
-  // We deliberately avoid `toLocaleString` — libreoffice / server tz can
-  // differ from the browser, and this is a legal footer, so we want an
-  // exact and stable representation.
   const pad = (n) => String(n).padStart(2, "0");
   const hours24 = d.getHours();
   const period = hours24 >= 12 ? "PM" : "AM";
-  const hours12 = hours24 % 12 || 12; // 0 -> 12, 13 -> 1, etc.
+  const hours12 = hours24 % 12 || 12;
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ` +
     `${pad(hours12)}:${pad(d.getMinutes())} ${period}`
   );
 }
+function reverseString(str) {
+  return String(str).split("").reverse().join("");
+}
 
 /**
  * @param {Buffer|Uint8Array} pdfBuffer - the source PDF (already rendered).
  * @param {object} opts
- * @param {string} opts.userName    - printer's full name (Arabic-safe).
- * @param {Date=}  opts.printedAt   - defaults to `new Date()`.
- * @returns {Promise<Buffer>} - a new PDF buffer with the footer stamped
+ * @param {string}   opts.userName        - printer's full name (Arabic-safe).
+ * @param {Date=}    opts.printedAt       - defaults to `new Date()`.
+ * @param {object=}  opts.instanceInfo    - when present, renders the right-hand
+ *                                          info block. Shape:
+ *   { instanceId, workflowTitle, studentName, studentCode }
+ * @returns {Promise<Buffer>} - new PDF buffer with the footer stamped
  *                              on every page.
  */
-async function stampPrintFooter(pdfBuffer, { userName, printedAt } = {}) {
+async function stampPrintFooter(
+  pdfBuffer,
+  { userName, printedAt, instanceInfo } = {},
+) {
   const pdfDoc = await PDFDocument.load(pdfBuffer, {
-    // Keep original xref for parity; ignore encryption if the source is
-    // ever encrypted (LibreOffice doesn't encrypt by default).
     ignoreEncryption: true,
   });
   pdfDoc.registerFontkit(fontkit);
@@ -69,6 +79,15 @@ async function stampPrintFooter(pdfBuffer, { userName, printedAt } = {}) {
   const stamp = formatFooterDate(printedAt);
   const nameLine = `${t.document.printedBy}: ${userName || "-"}`;
   const dateLine = `${stamp} `;
+
+  // Right-column lines (only computed when instanceInfo present).
+  const info = instanceInfo || null;
+  const infoLine1 = info
+    ? `#${reverseString(info.instanceId ?? "-")} ${info.workflowTitle || ""}`.trim()
+    : null;
+  const infoLine2 = info
+    ? `${info.studentName || "-"} - ${reverseString(info.studentCode ?? "-")}`.trim()
+    : null;
 
   // Layout constants
   const fontSize = 9;
@@ -92,7 +111,7 @@ async function stampPrintFooter(pdfBuffer, { userName, printedAt } = {}) {
       color: ruleColor,
     });
 
-    // Left side: printed-by (Arabic-safe).
+    // -------- Left column: printed-by (2 lines) --------
     page.drawText(nameLine, {
       x: paddingX,
       y: paddingY + fontSize + lineGap,
@@ -107,6 +126,30 @@ async function stampPrintFooter(pdfBuffer, { userName, printedAt } = {}) {
       font,
       color: grey,
     });
+
+    // -------- Right column: instance / student info (2 lines) --------
+    if (info) {
+      const w1 = font.widthOfTextAtSize(infoLine1, fontSize);
+      const w2 = font.widthOfTextAtSize(infoLine2, fontSize);
+      const rightXStart = width - paddingX; // right edge; text is drawn LTR
+      // so the x we pass is the START.
+      // We compute per-line X so the
+      // longer line hugs the edge.
+      page.drawText(infoLine1, {
+        x: rightXStart - w1,
+        y: paddingY + fontSize + lineGap,
+        size: fontSize,
+        font,
+        color: grey,
+      });
+      page.drawText(infoLine2, {
+        x: rightXStart - w2,
+        y: paddingY,
+        size: fontSize,
+        font,
+        color: grey,
+      });
+    }
   }
 
   const out = await pdfDoc.save();

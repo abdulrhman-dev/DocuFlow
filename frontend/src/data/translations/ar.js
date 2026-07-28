@@ -292,6 +292,11 @@ export const translator = {
     selected: "المختار",
     noDepartment: "لم يتم تحديد القسم للطلب — لا يمكن عرض المحاور",
     noAxes: "لا توجد محاور بحثية متاحة لهذا القسم",
+    pickDepartment: "القسم",
+    pickDepartmentPlaceholder: "اختر القسم",
+    overrideBadge: "قسم مختلف",
+    overrideNotice:
+      "أنت تعرض محاور قسم غير قسم هذا الطلب. الأهلية النهائية عند الحفظ تعتمد على قسم الطلب.",
   },
 
   roles: {

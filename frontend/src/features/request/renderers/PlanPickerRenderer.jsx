@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import styled, { css } from "styled-components";
-import { rankWith, and, isControl, uiTypeIs } from "@jsonforms/core";
+import { rankWith, and, isControl } from "@jsonforms/core";
 import { withJsonFormsControlProps } from "@jsonforms/react";
-import { HiCheckCircle, HiChevronLeft, HiChevronRight } from "react-icons/hi2";
+import { HiCheckCircle, HiChevronRight } from "react-icons/hi2";
 
 import Spinner from "@components/Spinner";
 import { usePlanForDepartment } from "../hooks/usePlan";
 import useDocData from "../hooks/useDocData";
+import useDepartments from "../hooks/useDepartments";
 import { translator as t } from "@data/translations/ar";
 
 const Wrapper = styled.div`
@@ -17,8 +18,7 @@ const Wrapper = styled.div`
   background: var(--color-grey-50);
   border: 1px solid var(--color-grey-200);
   border-radius: var(--border-radius-md);
-  max-height: 35rem;
-
+  max-height: 40rem;
 `;
 
 const Header = styled.div`
@@ -52,13 +52,54 @@ const StepChip = styled.span`
   font-weight: 600;
 `;
 
+const DeptRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.4rem 0;
+  flex-wrap: wrap;
+
+  & > label {
+    font-size: 1.2rem;
+    color: var(--color-grey-600);
+    font-weight: 600;
+  }
+`;
+
+const DeptSelect = styled.select`
+  flex: 1 1 20rem;
+  min-width: 20rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-grey-300);
+  border-radius: var(--border-radius-sm);
+  background: var(--color-grey-0);
+  color: var(--color-grey-800);
+  font-size: 1.3rem;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  }
+`;
+
+const DeptBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  color: var(--color-grey-600);
+  background: var(--color-grey-100);
+`;
+
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
   gap: 1rem;
   padding: 1rem;
-
-  overflow-y:auto;
+  overflow-y: auto;
 `;
 
 const cardBase = css`
@@ -179,30 +220,43 @@ const Summary = styled.div`
   }
 `;
 
-function PlanPicker({ data, handleChange, path, id, enabled = true, schema, uischema }) {
-    // JsonForms passes the docId indirectly via useDocData in Form.jsx; we can
-    // read it back from the form's outer state by looking at the containing
-    // "form" props. Easiest is to read the instance's departmentId from the
-    // form's `data.department` — we don't have it here. Instead we lift the
-    // department via a small trick: JsonForms' schema exposes root data through
-    // a document reference we already have. Simplest: read it from the doc.
-    //
-    // We use useDocData with the id from the closest form; that id lives on
-    // window.__docFormId (set by Form.jsx when it mounts). This avoids threading
-    // extra context through every renderer.
+
+
+function PlanPicker({
+    data,
+    handleChange,
+    path,
+    id,
+    enabled = true,
+    schema,
+    uischema,
+}) {
+    // Read the doc so we can find the instance's default department.
     const docId = typeof window !== "undefined" ? window.__docFormId : null;
     const { doc } = useDocData({ docId });
 
-    // `doc.instance.departmentId` is loaded when the request/doc endpoint
-    // returns it. If it's not there, fall back to reading from doc.data.
-    const departmentId =
+
+    const instanceDepartmentId =
         doc?.instance?.departmentId ??
         doc?.departmentId ??
         null;
 
-    const { axes, isPending } = usePlanForDepartment(departmentId);
-
+    // All departments (populates the override dropdown).
+    const { departments, isPending: isDeptsLoading } = useDepartments();
     const value = data && typeof data === "object" ? data : {};
+
+    // Selected department for the picker — defaults to the instance's.
+    const [pickerDeptId, setPickerDeptId] = useState(value?.deptId || instanceDepartmentId);
+
+    // If the doc arrives after the first render, seed the picker.
+    useEffect(() => {
+        if (pickerDeptId == null && instanceDepartmentId != null) {
+            setPickerDeptId(instanceDepartmentId);
+        }
+    }, [instanceDepartmentId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const { axes, isPending } = usePlanForDepartment(pickerDeptId);
+
     const [selectedAxis, setSelectedAxis] = useState(value.axisCode || null);
 
     useEffect(() => {
@@ -218,19 +272,41 @@ function PlanPicker({ data, handleChange, path, id, enabled = true, schema, uisc
 
     function pickAxis(axisCode) {
         setSelectedAxis(axisCode);
-        // If switching to a different axis, clear the goal.
         if (axisCode !== value.axisCode) {
-            handleChange(path, { axisCode, goalCode: "" });
+            handleChange(path, {
+                axisCode,
+                goalCode: "",
+                deptName: departments.find(d => d.id === pickerDeptId)?.name,
+                deptId: pickerDeptId
+            });
         }
     }
 
     function pickGoal(goalCode) {
-        handleChange(path, { axisCode: selectedAxis, goalCode });
+        handleChange(path, {
+            axisCode: selectedAxis, goalCode, deptName: departments.find(d => d.id === pickerDeptId)?.name,
+            deptId: pickerDeptId
+        });
     }
 
     function clearAxis() {
         setSelectedAxis(null);
-        handleChange(path, { axisCode: "", goalCode: "" });
+        handleChange(path, {
+            axisCode: "", goalCode: "", deptName: departments.find(d => d.id === pickerDeptId)?.name,
+            deptId: pickerDeptId
+        });
+    }
+
+    function handleDepartmentChange(e) {
+        const nextId = e.target.value ? Number(e.target.value) : null;
+        setPickerDeptId(nextId);
+        // Clear any previously picked axis/goal — they may not exist for
+        // the new department.
+        setSelectedAxis(null);
+        handleChange(path, {
+            axisCode: "", goalCode: "", deptName: departments.find(d => d.id === nextId)?.name,
+            deptId: nextId
+        });
     }
 
     const selectedAxisObj = axes.find((a) => a.code === value.axisCode);
@@ -238,23 +314,78 @@ function PlanPicker({ data, handleChange, path, id, enabled = true, schema, uisc
         (g) => g.code === value.goalCode,
     );
 
-    if (!departmentId) {
+    // -------- Department dropdown (always visible) --------
+    const deptDropdown = (
+        <DeptRow>
+            <label htmlFor={`${id || "plan"}-dept`}>{t.plan.pickDepartment}:</label>
+            <DeptSelect
+                id={`${id || "plan"}-dept`}
+                value={pickerDeptId ?? ""}
+                onChange={handleDepartmentChange}
+                disabled={!enabled || isDeptsLoading}
+            >
+                {(!pickerDeptId || pickerDeptId === "") && (
+                    <option value="" disabled>
+                        {t.plan.pickDepartmentPlaceholder}
+                    </option>
+                )}
+                {(departments || []).map((d) => (
+                    <option key={d.id} value={d.id}>
+                        {d.name}
+                    </option>
+                ))}
+            </DeptSelect>
+            {instanceDepartmentId != null &&
+                pickerDeptId !== instanceDepartmentId && (
+                    <DeptBadge title={t.plan.overrideNotice}>
+                        {t.plan.overrideBadge}
+                    </DeptBadge>
+                )}
+        </DeptRow>
+    );
+
+    // -------- Empty / loading states (keep the dropdown visible) --------
+    if (!pickerDeptId) {
         return (
-            <Wrapper>
+            <Wrapper id={id}>
+                <Header>
+                    <HeaderMain>
+                        <span>{uischema?.label || schema?.title || t.plan.title}</span>
+                        <span>{t.plan.stepAxis}</span>
+                    </HeaderMain>
+                    <StepChip>1 / 2</StepChip>
+                </Header>
+                {deptDropdown}
                 <Empty>{t.plan.noDepartment}</Empty>
             </Wrapper>
         );
     }
     if (isPending) {
         return (
-            <Wrapper>
+            <Wrapper id={id}>
+                <Header>
+                    <HeaderMain>
+                        <span>{uischema?.label || schema?.title || t.plan.title}</span>
+                        <span>{t.plan.stepAxis}</span>
+                    </HeaderMain>
+                    <StepChip>1 / 2</StepChip>
+                </Header>
+                {deptDropdown}
                 <Spinner />
             </Wrapper>
         );
     }
     if (!axes.length) {
         return (
-            <Wrapper>
+            <Wrapper id={id}>
+                <Header>
+                    <HeaderMain>
+                        <span>{uischema?.label || schema?.title || t.plan.title}</span>
+                        <span>{t.plan.stepAxis}</span>
+                    </HeaderMain>
+                    <StepChip>1 / 2</StepChip>
+                </Header>
+                {deptDropdown}
                 <Empty>{t.plan.noAxes}</Empty>
             </Wrapper>
         );
@@ -273,6 +404,8 @@ function PlanPicker({ data, handleChange, path, id, enabled = true, schema, uisc
                 </HeaderMain>
                 <StepChip>{currentAxis ? "2 / 2" : "1 / 2"}</StepChip>
             </Header>
+
+            {deptDropdown}
 
             {value.axisCode && value.goalCode && (
                 <Summary>
@@ -304,7 +437,8 @@ function PlanPicker({ data, handleChange, path, id, enabled = true, schema, uisc
                     <Grid>
                         {currentAxis.goals.map((g) => {
                             const selected =
-                                value.axisCode === currentAxis.code && value.goalCode === g.code;
+                                value.axisCode === currentAxis.code &&
+                                value.goalCode === g.code;
                             return (
                                 <GoalCard
                                     key={g.code}

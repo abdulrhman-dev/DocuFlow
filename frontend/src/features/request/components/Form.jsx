@@ -83,6 +83,7 @@ function Form({ onClose, id }) {
   }, [doc, isPending]);
 
   function handleSaveForm() {
+    console.log(data);
     patchDocument(
       { docData: data, id },
       { onSuccess: () => onClose() },

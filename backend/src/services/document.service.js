@@ -125,11 +125,13 @@ class DocumentService {
     // If the template has a `plan` field, cross-check that the chosen
     // axis/goal is eligible for the instance's department.
     if (data && data.plan && (data.plan.axisCode || data.plan.goalCode)) {
-      const inst = await db.query.workflowInstances.findFirst({
-        where: eq(schema.workflowInstances.id, document.instanceId),
-        with: { department: { columns: { name: true } } },
-      });
-      const deptName = inst?.department?.name || null;
+      // const inst = await db.query.workflowInstances.findFirst({
+      //   where: eq(schema.workflowInstances.id, document.instanceId),
+      //   with: { department: { columns: { name: true } } },
+      // });
+      const deptName = data?.plan?.deptName || null;
+      console.log("DEPT: ", deptName);
+
       if (
         !isEligibleForDepartment(
           deptName,
@@ -189,9 +191,33 @@ class DocumentService {
         [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
         user?.email ||
         `#${user?.id}`;
+
+      // Load the instance + student + workflow so the right-hand footer
+      // column can render "#<id> <workflow>" / "<studentName> - <code>".
+      let instanceInfo = null;
+      if (document.instanceId) {
+        const inst = await db.query.workflowInstances.findFirst({
+          where: eq(schema.workflowInstances.id, document.instanceId),
+          columns: { id: true, studentId: true },
+          with: {
+            workflow: { columns: { title: true } },
+            student: { columns: { code: true, name: true } },
+          },
+        });
+        if (inst) {
+          instanceInfo = {
+            instanceId: inst.id,
+            workflowTitle: inst.workflow?.title || "",
+            studentName: inst.student?.name || "",
+            studentCode: inst.student?.code || inst.studentId || "",
+          };
+        }
+      }
+
       pdfBuffer = await stampPrintFooter(pdfBuffer, {
         userName,
         printedAt: opts.printedAt || new Date(),
+        instanceInfo,
       });
     }
 
