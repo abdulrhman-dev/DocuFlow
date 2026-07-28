@@ -160,6 +160,21 @@ const ar = {
     reviewer: "لجنة الدراسات العليا",
     director: "مجلس الكلية",
   },
+
+  outside: {
+    emailInvalid: "بريد إلكتروني غير صالح",
+    academicEmailRequired:
+      "بريد إلكتروني أكاديمي مطلوب (ينتهي بـ .edu أو .edu.eg) — أو فعّل خيار (مهني).",
+    firstNameRequired: "الاسم الأول مطلوب",
+    lastNameRequired: "اسم العائلة مطلوب",
+    conflictExistingUser:
+      "هذا البريد مستخدم بالفعل لحساب داخلي، لا يمكن إضافته كمشرف خارجي.",
+    conflictExistingDifferent:
+      "بيانات مختلفة موجودة سلفًا لهذا المشرف — راجعها.",
+    notFound: "لم يتم العثور على المشرف الخارجي",
+    alreadyResponded: "لقد تم الرد على هذا الطلب مسبقًا.",
+    linkInvalid: "الرابط غير صالح أو انتهت صلاحيته.",
+  },
 };
 
 module.exports = ar;

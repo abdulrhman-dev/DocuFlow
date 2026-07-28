@@ -2,7 +2,13 @@ const asyncDec = require("../utils/asyncDec");
 const InstanceService = require("../services/instance.service");
 
 async function createInstance(req, res) {
-  const { workflowId, departmentId, studentCode, professorIds } = req.body;
+  const {
+    workflowId,
+    departmentId,
+    studentCode,
+    professorIds,
+    outsideSupervisorEmails,
+  } = req.body;
 
   const instance = await InstanceService.createInstance(
     workflowId,
@@ -10,6 +16,7 @@ async function createInstance(req, res) {
     departmentId,
     studentCode,
     professorIds,
+    outsideSupervisorEmails,
   );
 
   res.json({ status: "success", data: { instance } });

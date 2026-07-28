@@ -43,9 +43,6 @@ function arabicMonth(m) {
  * Build the display name shown in the "name" column for a signer of `role`
  * belonging to `deptName`. When `approvalMeta` is present we include the
  * month/year/isExtended info for department managers.
- *
- * For unapproved rows, `approvalMeta` is null, so department-manager rows
- * come out as "مجلس قسم <dept> شهر" (year/month left blank until known).
  */
 function roleNameCell(role, deptName, approvalMeta, user) {
   const dept = deptName || "";
@@ -61,7 +58,6 @@ function roleNameCell(role, deptName, approvalMeta, user) {
           (yearLabel ? ` ${yearLabel}` : "");
         return approvalMeta.isExtended ? `${base} ممتد` : base.trim();
       }
-      // Unapproved placeholder: known department, empty month/year.
       return `مجلس قسم ${dept} شهر`.trim();
     }
     case "administrator":
@@ -72,15 +68,34 @@ function roleNameCell(role, deptName, approvalMeta, user) {
       return "مجلس الكلية";
     case "professor":
     default:
-      // If we know the specific professor (multi-approval or previously
-      // recorded creator/approver), show their name. Otherwise fall back to
-      // a placeholder.
       return user ? fullName(user) : "أستاذ";
   }
 }
 
+/** Name cell for an OUTSIDE supervisor row. */
+function outsideNameCell(outsideSup) {
+  if (!outsideSup) return "مشرف خارجي";
+  const nm = fullName(outsideSup);
+  const suffix = outsideSup.isIndustrial ? " (مهني)" : " (خارجي)";
+  return `${nm}${suffix}`.trim();
+}
+
 /**
- * Build the "signatures" array for a document. See the file-level rules doc.
+ * Build the "signatures" array for a document.
+ *
+ * Rules preserved from the previous version:
+ *   - Every stage at or after document.stageOrder emits at least one row.
+ *   - Approved rows show the signer's name + full timestamp.
+ *   - Unapproved rows have an empty signature; name-column follows the
+ *     role template (department-manager placeholder = "مجلس قسم <dept> شهر").
+ *   - Creator row goes first, before the stage loop, in the creator's own
+ *     role format.
+ *   - Multi-approval professor stages fan out to every included professor
+ *     (approved OR not).
+ *
+ * New: OUTSIDE supervisors of multi-approval stages are appended after the
+ * internal fan-out for the SAME stage, using the same "empty until approved"
+ * rule as internal professors.
  */
 async function buildSignaturesForDocument(document, tx) {
   const conn = tx || db;
@@ -114,13 +129,12 @@ async function buildSignaturesForDocument(document, tx) {
     orderBy: [asc(schema.stages.stageOrder)],
   });
 
-  // Only stages at or after the document's stageOrder participate.
   const relevantStages = stages.filter(
     (s) => s.stageOrder >= document.stageOrder,
   );
   if (!relevantStages.length) return [];
 
-  // -------- Load approvals on this instance -----------------------------
+  // -------- Internal approvals on this instance -------------------------
   const approvals = await conn
     .select({
       assignedToUserId: schema.requestAssignments.assignedToUserId,
@@ -145,7 +159,7 @@ async function buildSignaturesForDocument(document, tx) {
     )
     .orderBy(asc(schema.stages.stageOrder));
 
-  const approvalsByStage = new Map(); // stageOrder -> approval row[]
+  const approvalsByStage = new Map();
   for (const a of approvals) {
     if (!approvalsByStage.has(a.stageOrder)) {
       approvalsByStage.set(a.stageOrder, []);
@@ -153,8 +167,31 @@ async function buildSignaturesForDocument(document, tx) {
     approvalsByStage.get(a.stageOrder).push(a);
   }
 
-  // -------- Load the creator (the person who authored the first request
-  // at this document's stage), for the leading "creator" row --------
+  // -------- OUTSIDE assignments on this instance (all statuses) ----------
+  const outsideAssignmentRows = await conn
+    .select({
+      outsideEmail: schema.outsideRequestAssignments.outsideEmail,
+      status: schema.outsideRequestAssignments.status,
+      updatedAt: schema.outsideRequestAssignments.updatedAt,
+      respondedAt: schema.outsideRequestAssignments.respondedAt,
+      stageOrder: schema.stages.stageOrder,
+    })
+    .from(schema.outsideRequestAssignments)
+    .innerJoin(
+      schema.requests,
+      eq(schema.requests.id, schema.outsideRequestAssignments.requestId),
+    )
+    .innerJoin(schema.stages, eq(schema.stages.id, schema.requests.stageId))
+    .where(eq(schema.requests.instanceId, document.instanceId))
+    .orderBy(asc(schema.stages.stageOrder));
+
+  const outsideAssignmentByStageAndEmail = new Map();
+  for (const o of outsideAssignmentRows) {
+    const k = `${o.stageOrder}:${o.outsideEmail}`;
+    outsideAssignmentByStageAndEmail.set(k, o);
+  }
+
+  // -------- Creator request at this document's stage ---------------------
   const creatorRequests = await conn.query.requests.findMany({
     where: eq(schema.requests.instanceId, document.instanceId),
     columns: {
@@ -171,21 +208,20 @@ async function buildSignaturesForDocument(document, tx) {
     (r) => r.stage?.stageOrder === document.stageOrder,
   );
 
-  // -------- Load included professors for multi-approval stages -----------
+  // -------- Included professors + outside supervisors for multi-approval --
   const includedProfessors = await conn.query.instanceProfessors.findMany({
     where: eq(schema.instanceProfessors.instanceId, instance.id),
     columns: { userId: true },
   });
   const includedProfessorIds = includedProfessors.map((r) => r.userId);
 
-  // -------- Load department affairs & managers for role-based unassigned
-  // rows so we can show the department context for reviewer/director rows
-  // (they don't have a department, but the format doesn't need one). --------
-  //
-  // For department_manager / administrator placeholder rows we need the
-  // instance's department name — already loaded above (`instanceDeptName`).
+  const includedOutside = await conn.query.instanceOutsideSupervisors.findMany({
+    where: eq(schema.instanceOutsideSupervisors.instanceId, instance.id),
+    columns: { outsideEmail: true },
+  });
+  const includedOutsideEmails = includedOutside.map((r) => r.outsideEmail);
 
-  // -------- Bulk-load users we'll render --------
+  // -------- Bulk-load users + outside supervisors -----------------------
   const userIds = new Set();
   if (creatorReq?.userId) userIds.add(creatorReq.userId);
   for (const arr of approvalsByStage.values()) {
@@ -207,9 +243,19 @@ async function buildSignaturesForDocument(document, tx) {
     : [];
   const usersById = new Map(users.map((u) => [u.id, u]));
 
-  // Load department names of every user we render (so signer's own dept
-  // shows up, not necessarily the instance dept — matters for reviewer/dir
-  // singletons, but also for cross-department assignments).
+  // All outside supervisors we might render — union of instance-included
+  // outside emails and outside assignments already emitted.
+  const outsideEmailSet = new Set(includedOutsideEmails);
+  for (const o of outsideAssignmentRows) outsideEmailSet.add(o.outsideEmail);
+  const outsideEmailsArr = Array.from(outsideEmailSet);
+  const outsideBook = outsideEmailsArr.length
+    ? await conn.query.outsideSupervisors.findMany({
+        where: inArray(schema.outsideSupervisors.email, outsideEmailsArr),
+      })
+    : [];
+  const outsideByEmail = new Map(outsideBook.map((o) => [o.email, o]));
+
+  // -------- Department names for role-based rows -----------------------
   const deptIds = new Set(
     users.map((u) => u.departmentId).filter((x) => Number.isInteger(x)),
   );
@@ -229,11 +275,11 @@ async function buildSignaturesForDocument(document, tx) {
     return fallback;
   }
 
-  // -------- Build rows --------
+  // -------- Row builders --------
   const rows = [];
-  const seen = new Set(); // key = `${stageOrder}:${userId||"_"}:${roleTag}`
+  const seen = new Set();
 
-  function pushApprovedRow({ stage, approval, user }) {
+  function pushApprovedInternalRow({ stage, approval, user }) {
     const signerName = fullName(user);
     const ts = toFullTimestamp(approval.updatedAt);
     const signatureCell = signerName
@@ -252,18 +298,35 @@ async function buildSignaturesForDocument(document, tx) {
     rows.push({ name: nameCell, signature: signatureCell });
   }
 
-  function pushPlaceholderRow({ stage, user }) {
+  function pushPlaceholderInternalRow({ stage, user }) {
     const nameCell = roleNameCell(
       stage.role,
       user ? deptForSigner(user) : instanceDeptName,
       null,
-      user, // may be null for singleton-role placeholders
+      user,
     );
     rows.push({ name: nameCell, signature: "" });
   }
 
-  // ---- (a) creator row first (only when the creator authored a request
-  //          at this document's stage) ----
+  function pushOutsideRow({ stage, outsideEmail }) {
+    const sup = outsideByEmail.get(outsideEmail) || null;
+    const nameCell = outsideNameCell(sup);
+    const meta = outsideAssignmentByStageAndEmail.get(
+      `${stage.stageOrder}:${outsideEmail}`,
+    );
+    if (meta && meta.status === "approved") {
+      const signerName = fullName(sup);
+      const ts = toFullTimestamp(meta.respondedAt || meta.updatedAt);
+      const signatureCell = signerName
+        ? `${signerName} تم موافقة الطلب بتاريخ ${ts}`
+        : "";
+      rows.push({ name: nameCell, signature: signatureCell });
+    } else {
+      rows.push({ name: nameCell, signature: "" });
+    }
+  }
+
+  // ---- (a) creator row first ----
   if (creatorReq && creatorReq.userId) {
     const creator = usersById.get(creatorReq.userId);
     if (creator) {
@@ -272,7 +335,6 @@ async function buildSignaturesForDocument(document, tx) {
       const signatureCell = signerName
         ? `${signerName} تم موافقة الطلب بتاريخ ${ts}`
         : "";
-      // Creator's own role governs the name-column format.
       const nameCell = roleNameCell(
         creator.role,
         deptForSigner(creator),
@@ -285,9 +347,9 @@ async function buildSignaturesForDocument(document, tx) {
     }
   }
 
-  // ---- (b) one or more rows for every relevant stage ----
+  // ---- (b) one or more rows per relevant stage ----
   for (const stage of relevantStages) {
-    // Skip the creator's stage — we've already emitted its row above.
+    // Skip the creator's stage — creator row already emitted.
     if (
       creatorReq &&
       creatorReq.userId &&
@@ -299,17 +361,19 @@ async function buildSignaturesForDocument(document, tx) {
     const stageApprovals = approvalsByStage.get(stage.stageOrder) || [];
 
     if (stage.isMultiApproval) {
-      // Fan out: one row per included professor (known at instance creation
-      // time). Approved ones render with timestamp; unapproved ones with an
-      // empty signature.
-      if (includedProfessorIds.length === 0) {
-        // Nothing to render for an empty multi-approval stage (skipped at
-        // runtime by the workflow engine too).
+      // No one included at all — skip whole stage (matches workflow engine).
+      if (
+        includedProfessorIds.length === 0 &&
+        includedOutsideEmails.length === 0
+      ) {
         continue;
       }
+
       const approvalByUserId = new Map(
         stageApprovals.map((a) => [a.assignedToUserId, a]),
       );
+
+      // Internal professors
       for (const pid of includedProfessorIds) {
         const key = `${stage.stageOrder}:${pid}:${stage.role}`;
         if (seen.has(key)) continue;
@@ -317,11 +381,20 @@ async function buildSignaturesForDocument(document, tx) {
         const user = usersById.get(pid) || null;
         const approval = approvalByUserId.get(pid) || null;
         if (approval) {
-          pushApprovedRow({ stage, approval, user });
+          pushApprovedInternalRow({ stage, approval, user });
         } else {
-          pushPlaceholderRow({ stage, user });
+          pushPlaceholderInternalRow({ stage, user });
         }
       }
+
+      // Outside supervisors for the SAME stage
+      for (const oemail of includedOutsideEmails) {
+        const key = `${stage.stageOrder}:o:${oemail}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        pushOutsideRow({ stage, outsideEmail: oemail });
+      }
+
       continue;
     }
 
@@ -332,13 +405,13 @@ async function buildSignaturesForDocument(document, tx) {
         const key = `${stage.stageOrder}:${approval.assignedToUserId}:${stage.role}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        pushApprovedRow({ stage, approval, user });
+        pushApprovedInternalRow({ stage, approval, user });
       }
     } else {
       const key = `${stage.stageOrder}:_:${stage.role}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      pushPlaceholderRow({ stage, user: null });
+      pushPlaceholderInternalRow({ stage, user: null });
     }
   }
 

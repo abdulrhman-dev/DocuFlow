@@ -13,9 +13,13 @@ const userRouter = require("./user.route");
 const planRouter = require("./plan.route");
 const affairsRouter = require("./affairs.route");
 const directorRouter = require("./director.route");
+const outsideSupervisorRouter = require("./outside-supervisor.route");
+const outsideRespondRouter = require("./outside-respond.route");
 
 const apiRouter = express.Router();
 
+apiRouter.use("/outside/respond", outsideRespondRouter);
+apiRouter.use("/outside-supervisor", outsideSupervisorRouter);
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/workflow", workflowRouter);
 apiRouter.use("/instance", instanceRouter);

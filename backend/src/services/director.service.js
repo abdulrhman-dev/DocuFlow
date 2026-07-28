@@ -150,6 +150,7 @@ class DirectorService {
         where: inArray(schema.workflowInstances.id, ids),
         with: {
           professors: true,
+          outsideSupervisors: true,
           workflow: { columns: { title: true } },
         },
       });

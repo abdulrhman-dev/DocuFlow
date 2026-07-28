@@ -9,6 +9,7 @@ const { collectReadonlyViolations } = require("../utils/readonlyEnforcer");
 const { buildSignaturesForDocument } = require("./document-signatures");
 const { isEligibleForDepartment } = require("./research-plan");
 const { stampPrintFooter } = require("./pdf-footer");
+const { verifyOutsideAssignmentToken } = require("./outside-token");
 
 async function resolveDocumentAccess(document, user) {
   // Pull every access row the user has on requests of this instance
@@ -162,9 +163,13 @@ class DocumentService {
     });
     if (!document) throw new AppError(ar.document.notFound, 404);
 
-    if (user.role !== "administrator" && user.role !== "director") {
-      const { view } = await resolveDocumentAccess(document, user);
-      if (!view) throw new AppError(ar.document.noPermissionToView, 403);
+    // Bypass access resolution entirely when the caller is an outside
+    // supervisor already vetted by their token (see the token entrypoint).
+    if (!opts.skipAccessCheck) {
+      if (user.role !== "administrator" && user.role !== "director") {
+        const { view } = await resolveDocumentAccess(document, user);
+        if (!view) throw new AppError(ar.document.noPermissionToView, 403);
+      }
     }
 
     if (!document.template?.fileUrl) {
@@ -184,16 +189,12 @@ class DocumentService {
       mergedData,
     );
 
-    // Only stamp the print footer when the caller explicitly asked for the
-    // print variant. The regular view path (Modal preview) NEVER stamps.
     if (opts.print) {
       const userName =
         [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
         user?.email ||
         `#${user?.id}`;
 
-      // Load the instance + student + workflow so the right-hand footer
-      // column can render "#<id> <workflow>" / "<studentName> - <code>".
       let instanceInfo = null;
       if (document.instanceId) {
         const inst = await db.query.workflowInstances.findFirst({
@@ -222,6 +223,43 @@ class DocumentService {
     }
 
     return { pdfBuffer, template: document.template };
+  }
+
+  static async getDocumentPdfByOutsideToken(token, documentId) {
+    let payload;
+    try {
+      payload = verifyOutsideAssignmentToken(token);
+    } catch (_e) {
+      throw new AppError(ar.outside.linkInvalid, 401);
+    }
+
+    const document = await db.query.documents.findFirst({
+      where: eq(schema.documents.id, Number(documentId)),
+      with: { template: { columns: { fileUrl: true, title: true } } },
+    });
+    if (!document) throw new AppError(ar.document.notFound, 404);
+
+    const req = await db.query.requests.findFirst({
+      where: eq(schema.requests.id, payload.requestId),
+      columns: { id: true, instanceId: true },
+    });
+    if (!req || req.instanceId !== document.instanceId) {
+      throw new AppError(ar.document.noPermissionToView, 403);
+    }
+
+    const assignment = await db.query.outsideRequestAssignments.findFirst({
+      where: and(
+        eq(schema.outsideRequestAssignments.requestId, payload.requestId),
+        eq(schema.outsideRequestAssignments.outsideEmail, payload.email),
+      ),
+    });
+    if (!assignment) throw new AppError(ar.outside.notFound, 404);
+
+    const supervisor = { role: "outside", email: payload.email };
+    return this.getDocumentPdf(supervisor, documentId, {
+      skipAccessCheck: true,
+      print: false,
+    });
   }
 }
 

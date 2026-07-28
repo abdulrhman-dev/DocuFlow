@@ -15,6 +15,69 @@ const { supervisedStudents } = require("./schema/supervised_students");
 const { requestAssignments } = require("./schema/request_assignment");
 const { instanceProfessors } = require("./schema/instance_professor");
 
+// ---------- Outside supervisors ----------
+const { outsideSupervisors } = require("./schema/outside_supervisor");
+const {
+  outsideRequestAssignments,
+} = require("./schema/outside_request_assignment");
+const {
+  outsideSupervisedStudents,
+} = require("./schema/outside_supervised_students");
+const {
+  instanceOutsideSupervisors,
+} = require("./schema/instance_outside_supervisor");
+
+const outsideSupervisorsRelations = relations(
+  outsideSupervisors,
+  ({ many }) => ({
+    requestAssignments: many(outsideRequestAssignments),
+    supervisedStudents: many(outsideSupervisedStudents),
+    instances: many(instanceOutsideSupervisors),
+  }),
+);
+
+const outsideRequestAssignmentsRelations = relations(
+  outsideRequestAssignments,
+  ({ one }) => ({
+    request: one(requests, {
+      fields: [outsideRequestAssignments.requestId],
+      references: [requests.id],
+    }),
+    outsideSupervisor: one(outsideSupervisors, {
+      fields: [outsideRequestAssignments.outsideEmail],
+      references: [outsideSupervisors.email],
+    }),
+  }),
+);
+
+const outsideSupervisedStudentsRelations = relations(
+  outsideSupervisedStudents,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [outsideSupervisedStudents.studentCode],
+      references: [students.code],
+    }),
+    outsideSupervisor: one(outsideSupervisors, {
+      fields: [outsideSupervisedStudents.outsideEmail],
+      references: [outsideSupervisors.email],
+    }),
+  }),
+);
+
+const instanceOutsideSupervisorsRelations = relations(
+  instanceOutsideSupervisors,
+  ({ one }) => ({
+    instance: one(workflowInstances, {
+      fields: [instanceOutsideSupervisors.instanceId],
+      references: [workflowInstances.id],
+    }),
+    outsideSupervisor: one(outsideSupervisors, {
+      fields: [instanceOutsideSupervisors.outsideEmail],
+      references: [outsideSupervisors.email],
+    }),
+  }),
+);
+
 // ---------- User ----------
 const usersRelations = relations(users, ({ one, many }) => ({
   instances: many(workflowInstances, { relationName: "user_instances" }),
@@ -144,6 +207,7 @@ const workflowInstancesRelations = relations(
     requests: many(requests),
     professors: many(instanceProfessors),
     documents: many(documents),
+    outsideSupervisors: many(instanceOutsideSupervisors),
   }),
 );
 
@@ -161,6 +225,7 @@ const requestsRelations = relations(requests, ({ one, many }) => ({
   }),
   accesses: many(accesses),
   assignments: many(requestAssignments),
+  outsideAssignments: many(outsideRequestAssignments),
 }));
 
 // ---------- Document ----------
@@ -255,4 +320,8 @@ module.exports = {
   studentsRelations,
   requestAssignmentsRelations,
   instanceProfessorsRelations,
+  outsideSupervisorsRelations,
+  outsideRequestAssignmentsRelations,
+  outsideSupervisedStudentsRelations,
+  instanceOutsideSupervisorsRelations,
 };

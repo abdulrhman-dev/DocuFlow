@@ -310,4 +310,33 @@ export const translator = {
     registrationStart: "بداية القيد",
     registrationEnd: "نهاية القيد",
   },
+
+  outside: {
+    sectionTitle: "المشرفون الخارجيون",
+    emailPlaceholder: "البريد الإلكتروني للمشرف الخارجي",
+    isIndustrial: "مهني",
+    firstName: "الاسم الأول",
+    lastName: "اسم العائلة",
+    degreeAndInstitution: "الدرجة والجامعة / المؤسسة",
+    degreeAndInstitutionPlaceholder: "مثال: دكتور — جامعة الإسكندرية",
+    add: "إضافة",
+    alreadyAdded: "تمت إضافة هذا المشرف مسبقًا",
+    existingFound: "تم العثور على بياناته سابقًا — يمكنك تعديلها إن لزم.",
+    emailInvalid: "بريد إلكتروني غير صالح",
+    academicEmailRequired:
+      "البريد يجب أن ينتهي بـ .edu أو .edu.eg — أو فعّل خيار (مهني).",
+    nameRequired: "الاسم الأول واسم العائلة مطلوبان",
+    conflictExistingDifferent: "بيانات مختلفة موجودة سلفًا لهذا البريد.",
+    respondPage: {
+      title: "طلب اعتماد إشراف",
+      linkExpired: "هذا الرابط غير صالح أو منتهي الصلاحية.",
+      alreadyResponded: "لقد قمت بالرد على هذا الطلب مسبقًا.",
+      approve: "موافقة",
+      reject: "رفض",
+      rejectReason: "سبب الرفض",
+      thankYouApproved: "تم تسجيل موافقتك — شكراً لك.",
+      thankYouRejected: "تم تسجيل رفضك — شكراً لك.",
+      viewingAs: "أنت تعرض هذا الطلب كمشرف خارجي:",
+    },
+  },
 };

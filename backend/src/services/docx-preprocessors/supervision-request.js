@@ -1,73 +1,61 @@
+const { eq, and } = require("drizzle-orm");
+const { db, schema } = require("../../db");
+
 /**
- * Preprocessor for the "طلب تحديد الإشراف على رسالة الماجستير" template.
- *
- * Responsibilities (all hardcoded knowledge about THIS docx lives here):
- *  - Normalise `supervisors`, `editSupervisors`, `signatures` into arrays
- *    (JSONForms may pass undefined when a section is empty).
- *  - Translate `requestType` enum -> checkbox marks.
- *  - Translate `editSupervisors[].action` enum -> Arabic label used in the
- *    "إضافة / حذف" cell of the docx.
+ * On execute: link every INTERNAL professor (plus the creator) as
+ * SupervisedStudents, and every OUTSIDE supervisor as OutsideSupervisedStudents.
  */
-const { labelsForCodes } = require("../research-plan");
+async function execute(instance, tx) {
+  const conn = tx || db;
 
-const CHECK_MARK = "✔";
+  // Internal
+  const professorIds = new Set();
+  if (instance.userId) professorIds.add(instance.userId);
+  for (const p of instance.professors || []) {
+    if (p?.userId) professorIds.add(p.userId);
+  }
+  if (!instance.studentId) return;
 
-function toArray(x) {
-  if (!x) return [];
-  return Array.isArray(x) ? x : [x];
-}
+  for (const userId of professorIds) {
+    const existing = await conn.query.supervisedStudents.findFirst({
+      where: and(
+        eq(schema.supervisedStudents.userId, userId),
+        eq(schema.supervisedStudents.studentCode, instance.studentId),
+      ),
+    });
+    if (!existing) {
+      await conn.insert(schema.supervisedStudents).values({
+        userId,
+        studentCode: instance.studentId,
+      });
+    }
+  }
 
-function preprocess(data) {
-  const src = data && typeof data === "object" ? data : {};
-  const out = { ...src };
-
-  out.nationalId = src?.nationalId ?? "";
-
-  out.supervisors = toArray(src.supervisors).map((s) => ({
-    name: s?.name ?? "",
-    degreeAndInstitution: s?.degreeAndInstitution ?? "",
-  }));
-
-  out.editSupervisors = toArray(src.editSupervisors).map((s) => ({
-    name: s?.name ?? "",
-    degreeAndInstitution: s?.degreeAndInstitution ?? "",
-    actionMark:
-      s?.action === "add" ? "إضافة" : s?.action === "remove" ? "حذف" : "",
-  }));
-
-  out.signatures = toArray(src.signatures).map((s) => ({
-    name: s?.name ?? "",
-    signature: s?.signature ?? "",
-  }));
-
-  const planAxisCode = src?.plan?.axisCode || "";
-  const planGoalCode = src?.plan?.goalCode || "";
-  // const { axisName, goalName } = labelsForCodes(planAxisCode, planGoalCode);
-  out.planAxis = planAxisCode || "";
-  out.planGoal = planGoalCode || "";
-  out.planSpecialization = src?.planSpecialization ?? "";
-  out.planResearchField = src?.planResearchField ?? "";
-
-  out.requestTypeNewMark = src.requestType === "new" ? CHECK_MARK : "";
-  out.requestTypeEditMark = src.requestType === "edit" ? CHECK_MARK : "";
-
-  return out;
+  // Outside
+  const outsideEmails = new Set();
+  for (const ox of instance.outsideSupervisors || []) {
+    if (ox?.outsideEmail) outsideEmails.add(ox.outsideEmail);
+  }
+  for (const email of outsideEmails) {
+    const existing = await conn.query.outsideSupervisedStudents.findFirst({
+      where: and(
+        eq(schema.outsideSupervisedStudents.outsideEmail, email),
+        eq(schema.outsideSupervisedStudents.studentCode, instance.studentId),
+      ),
+    });
+    if (!existing) {
+      await conn.insert(schema.outsideSupervisedStudents).values({
+        outsideEmail: email,
+        studentCode: instance.studentId,
+      });
+    }
+  }
 }
 
 module.exports = {
-  // The registry key — must be stable and unique per template.
-  key: "supervision-request",
-  // Match against Template.fileUrl or Template.title so we don't rely on
-  // fragile numeric ids.
-  matches({ fileUrl, title }) {
-    if (
-      typeof fileUrl === "string" &&
-      fileUrl.endsWith("supervision-request.docx")
-    ) {
-      return true;
-    }
-    if (title === "طلب تحديد الإشراف على رسالة الماجستير") return true;
-    return false;
+  key: "supervision-request-postprocess",
+  matches(workflowTitle) {
+    return workflowTitle === "تحديد الاشراف";
   },
-  preprocess,
+  execute,
 };

@@ -97,6 +97,7 @@ class InstanceService {
     departmentId,
     studentCode,
     professorIds,
+    outsideSupervisorEmails,
   ) {
     if (!studentCode) throw new AppError(ar.instance.studentCodeRequired, 400);
 
@@ -110,9 +111,22 @@ class InstanceService {
     if (new Set(professorList).size !== professorList.length) {
       throw new AppError(ar.instance.duplicateProfessorId, 400);
     }
-
     if (professorList.includes(user.id)) {
       throw new AppError(ar.instance.cannotIncludeSelf, 403);
+    }
+
+    // outsideSupervisorEmails is optional; must be a distinct array of strings.
+    const outsideEmails = Array.isArray(outsideSupervisorEmails)
+      ? outsideSupervisorEmails
+          .map((e) =>
+            String(e || "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter(Boolean)
+      : [];
+    if (new Set(outsideEmails).size !== outsideEmails.length) {
+      throw new AppError(ar.instance.duplicateProfessorId, 400);
     }
 
     departmentId = departmentId || user.departmentId;
@@ -151,10 +165,22 @@ class InstanceService {
         columns: { id: true },
       });
       if (validProfessors.length !== professorList.length) {
-        // Find the offending id for a helpful error
         const validIds = new Set(validProfessors.map((p) => p.id));
         const bad = professorList.find((id) => !validIds.has(id));
         throw new AppError(ar.instance.invalidProfessorId(bad), 400);
+      }
+    }
+
+    let validOutside = [];
+    if (outsideEmails.length) {
+      validOutside = await db.query.outsideSupervisors.findMany({
+        where: inArray(schema.outsideSupervisors.email, outsideEmails),
+        columns: { email: true },
+      });
+      if (validOutside.length !== outsideEmails.length) {
+        const validSet = new Set(validOutside.map((x) => x.email));
+        const bad = outsideEmails.find((e) => !validSet.has(e));
+        throw new AppError(`Outside supervisor not found: ${bad}`, 400);
       }
     }
 
@@ -175,6 +201,15 @@ class InstanceService {
           validProfessors.map((p) => ({
             instanceId: instance.id,
             userId: p.id,
+          })),
+        );
+      }
+
+      if (validOutside.length) {
+        await tx.insert(schema.instanceOutsideSupervisors).values(
+          validOutside.map((o) => ({
+            instanceId: instance.id,
+            outsideEmail: o.email,
           })),
         );
       }

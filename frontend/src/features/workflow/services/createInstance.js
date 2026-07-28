@@ -9,6 +9,9 @@ async function createInstance(instance) {
     professorIds: Array.isArray(instance.professorIds)
       ? instance.professorIds
       : [],
+    outsideSupervisorEmails: Array.isArray(instance.outsideSupervisorEmails)
+      ? instance.outsideSupervisorEmails
+      : [],
   };
   const data = await apiRequest("/instance", {
     method: "POST",

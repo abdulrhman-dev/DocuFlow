@@ -16,6 +16,7 @@ import { useSearchProfessors } from "./hooks/useSearchProfessors";
 import { translator as t } from "@data/translations/ar";
 import { useUser } from "@features/user/hooks/useUser";
 import StudentCard from "./StudentCard";
+import OutsideSupervisorsPicker from "./OutsideSupervisorsPicker";
 
 const Container = styled.form`
   display: flex;
@@ -27,15 +28,16 @@ const Container = styled.form`
 
 const Content = styled.div`
   flex: 1 1 auto;
-  /* overflow-y: auto; */
+  overflow-y: auto; 
+  max-height: 60rem;
+
   /* padding-bottom: 2rem; */
-  max-height: 50rem;
+
 `;
 const DescriptionColumn = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
-  justify-content: space-between;
 `
 
 const Footer = styled.footer`
@@ -85,8 +87,7 @@ const Description = styled.div`
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-start;
-  margin-top: 2rem;
-  padding-top: 4rem;
+  padding-top: 1rem;
 `;
 
 const StyledHeading = styled(Heading)`
@@ -132,6 +133,7 @@ function WorkFlowForm() {
       departmentId: "",
       student: null,
       professors: [],
+      outsideSupervisors: [],
     },
   });
 
@@ -180,6 +182,7 @@ function WorkFlowForm() {
       departmentId: Number(data.departmentId),
       studentCode: data.student?.code,
       professorIds: (data.professors || []).map((p) => p.id),
+      outsideSupervisorEmails: (data.outsideSupervisors || []).map((s) => s.email),
     });
   }
 
@@ -288,9 +291,24 @@ function WorkFlowForm() {
                       </ChipRemove>
                     </Chip>
                   ))}
+                  <div>
+                    <FieldLabel>{t.outside.sectionTitle}</FieldLabel>
+                    <Controller
+                      name="outsideSupervisors"
+                      control={control}
+                      render={({ field }) => (
+                        <OutsideSupervisorsPicker
+                          value={field.value || []}
+                          onChange={field.onChange}
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
             )}
+
+
           </SelectGroup>
           <DescriptionColumn>
             <Description >
@@ -307,10 +325,12 @@ function WorkFlowForm() {
           </DescriptionColumn>
 
         </FormSection>
+
       </Content>
 
+
       <Footer>
-        <ProgressStepper currentStep={1} items={selectedWorkflow?.stages || []} />
+
         <ButtonContainer>
           <Button
             $size="large"
@@ -322,6 +342,8 @@ function WorkFlowForm() {
           </Button>
         </ButtonContainer>
       </Footer>
+
+
     </Container>
   );
 }

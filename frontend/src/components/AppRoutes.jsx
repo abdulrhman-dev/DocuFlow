@@ -17,6 +17,7 @@ import Requests from "@pages/Requests";
 import AffairsCompletedInstances from "@pages/AffairsCompletedInstances";
 import AffairsInstanceDetail from "@pages/AffairsInstanceDetail";
 import DirectorApprovals from "@pages/DirectorApprovals";
+import OutsideRespond from "@pages/OutsideRespond";
 
 import { translator as t } from "@data/translations/ar";
 
@@ -24,6 +25,9 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public — outside supervisor magic link */}
+        <Route path="/outside/respond/:token" element={<OutsideRespond />} />
+
         <Route
           element={
             <ProtectedRoute>

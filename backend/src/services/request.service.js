@@ -1,4 +1,6 @@
 const { eq, and, ne, inArray, asc, sql } = require("drizzle-orm");
+const { signOutsideAssignmentToken } = require("./outside-token");
+const { sendOutsideInvite } = require("./mailer");
 const { db, schema } = require("../db");
 const AppError = require("../errors/AppError");
 const DrizzleQueryBuilder = require("../utils/DrizzleQueryBuilder");
@@ -7,17 +9,21 @@ const DocumentService = require("./document.service");
 const ar = require("../translations/ar");
 const { findPrefiller } = require("./document-prefillers");
 
-function computeRequestStatus(assignments) {
-  if (!assignments || assignments.length === 0) return "draft";
-  if (assignments.some((a) => a.status === "rejected")) return "rejected";
-  if (assignments.every((a) => a.status === "approved")) return "approved";
+function computeRequestStatus(assignments, outsideAssignments) {
+  const all = [...(assignments || []), ...(outsideAssignments || [])];
+  if (all.length === 0) return "draft";
+  if (all.some((a) => a.status === "rejected")) return "rejected";
+  if (all.every((a) => a.status === "approved")) return "approved";
   return "pending";
 }
 
 function attachDerived(request) {
   if (!request) return request;
   const plain = { ...request };
-  plain.status = computeRequestStatus(plain.assignments);
+  plain.status = computeRequestStatus(
+    plain.assignments,
+    plain.outsideAssignments,
+  );
   const pending = (plain.assignments || []).find((a) => a.status === "pending");
   plain.assignedToUserId = pending ? pending.assignedToUserId : null;
   return plain;
@@ -65,6 +71,28 @@ class RequestService {
         },
       },
     },
+    outsideAssignments: {
+      columns: {
+        requestId: true,
+        outsideEmail: true,
+        status: true,
+        rejectionReason: true,
+        respondedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      with: {
+        outsideSupervisor: {
+          columns: {
+            email: true,
+            firstName: true,
+            lastName: true,
+            isIndustrial: true,
+            academicDegreeAndInstitution: true,
+          },
+        },
+      },
+    },
   };
 
   static _transformRequest(request) {
@@ -104,7 +132,36 @@ class RequestService {
       pending: rawAssignments.filter((a) => a.status === "pending").length,
       responded: rawAssignments.filter((a) => a.status !== "pending").length,
     };
-    // Do not leak the inner joined `assignee` blob back to the client.
+
+    const rawOutside = Array.isArray(plain.outsideAssignments)
+      ? plain.outsideAssignments
+      : [];
+    plain.outsideRecipients = rawOutside.map((a) => ({
+      email: a.outsideEmail,
+      firstName: a.outsideSupervisor?.firstName || null,
+      lastName: a.outsideSupervisor?.lastName || null,
+      isIndustrial: !!a.outsideSupervisor?.isIndustrial,
+      academicDegreeAndInstitution:
+        a.outsideSupervisor?.academicDegreeAndInstitution || null,
+      status: a.status,
+      rejectionReason: a.rejectionReason || null,
+      respondedAt: a.respondedAt || null,
+    }));
+    plain.recipientsSummary.total += rawOutside.length;
+    plain.recipientsSummary.approved += rawOutside.filter(
+      (a) => a.status === "approved",
+    ).length;
+    plain.recipientsSummary.rejected += rawOutside.filter(
+      (a) => a.status === "rejected",
+    ).length;
+    plain.recipientsSummary.pending += rawOutside.filter(
+      (a) => a.status === "pending",
+    ).length;
+    plain.recipientsSummary.responded += rawOutside.filter(
+      (a) => a.status !== "pending",
+    ).length;
+    delete plain.outsideAssignments;
+
     delete plain.assignments;
     // -------------------------------------------------------------------------
 
@@ -245,14 +302,22 @@ class RequestService {
           where: eq(schema.instanceProfessors.instanceId, instance.id),
           columns: { userId: true },
         });
-        if (included.length === 0) {
-          // Skip: the special stage is a no-op when no professors were included.
+        const outsideIncluded =
+          await tx.query.instanceOutsideSupervisors.findMany({
+            where: eq(
+              schema.instanceOutsideSupervisors.instanceId,
+              instance.id,
+            ),
+            columns: { outsideEmail: true },
+          });
+        if (included.length === 0 && outsideIncluded.length === 0) {
           cursor = nextStage.stageOrder;
           continue;
         }
         return {
           nextStage,
           assignees: included.map((r) => r.userId),
+          outsideAssignees: outsideIncluded.map((r) => r.outsideEmail),
         };
       }
 
@@ -316,11 +381,12 @@ class RequestService {
               },
             },
           },
-          stage: {
+          outsideSupervisors: {
             with: {
-              conditions: { with: { template: true } },
+              outsideSupervisor: true,
             },
           },
+          stage: { with: { conditions: { with: { template: true } } } },
         },
       });
       if (!instance) throw new AppError(ar.instance.notFound, 404);
@@ -416,7 +482,7 @@ class RequestService {
   static async getRequestById(requestId) {
     const request = await db.query.requests.findFirst({
       where: eq(schema.requests.id, Number(requestId)),
-      with: { assignments: true },
+      with: { assignments: true, outsideAssignments: true },
     });
     if (!request) throw new AppError(ar.request.notFound, 404);
     return attachDerived(request);
@@ -446,17 +512,17 @@ class RequestService {
       if (status === "pending") {
         const fullInstance = await tx.query.workflowInstances.findFirst({
           where: eq(schema.workflowInstances.id, request.instanceId),
-          with: { stage: true },
+          with: { stage: true, student: true, workflow: true },
         });
         if (!fullInstance) throw new AppError(ar.instance.notFound, 404);
 
-        const { assignees } =
+        const { assignees, outsideAssignees = [] } =
           await RequestService._resolveNextStageAndAssignees(
             fullInstance,
             fullInstance.stage.stageOrder,
             tx,
           );
-        if (assignees.length === 0) {
+        if (assignees.length === 0 && outsideAssignees.length === 0) {
           throw new AppError(ar.request.cannotSendNoAssignments, 400);
         }
 
@@ -469,6 +535,7 @@ class RequestService {
         });
         await DocumentService.validateDocumentsData(documents, false);
 
+        // ---- internal assignees ----
         for (const assigneeId of assignees) {
           const existing = await tx.query.requestAssignments.findFirst({
             where: and(
@@ -509,6 +576,37 @@ class RequestService {
           }
         }
 
+        // ---- outside assignees ----
+        const outsideMails = []; // { email, url } for post-commit send
+        for (const email of outsideAssignees) {
+          const existing = await tx.query.outsideRequestAssignments.findFirst({
+            where: and(
+              eq(schema.outsideRequestAssignments.requestId, request.id),
+              eq(schema.outsideRequestAssignments.outsideEmail, email),
+            ),
+          });
+          if (!existing) {
+            await tx.insert(schema.outsideRequestAssignments).values({
+              requestId: request.id,
+              outsideEmail: email,
+              status: "pending",
+            });
+          }
+          const token = signOutsideAssignmentToken({
+            requestId: request.id,
+            email,
+          });
+          const front = process.env.FRONTEND_URL || "http://localhost:5173";
+          const url = `${front}/outside/respond/${token}`;
+          outsideMails.push({
+            to: email,
+            url,
+            studentName: fullInstance.student?.name || "",
+            workflowTitle: fullInstance.workflow?.title || "",
+          });
+        }
+
+        // Drop creator to read.
         await tx
           .update(schema.accesses)
           .set({ accessLevel: "read" })
@@ -525,11 +623,24 @@ class RequestService {
             .set({ sentAt: new Date() })
             .where(eq(schema.requests.id, request.id));
         }
+
+        // Fire-and-forget email dispatch AFTER the tx commits — but since we
+        // are inside the tx, we cannot await; queue them on a microtask and
+        // let node's event loop flush them post-commit.
+        if (outsideMails.length) {
+          setImmediate(() => {
+            for (const m of outsideMails) {
+              sendOutsideInvite(m).catch((e) => {
+                console.error("[mailer] outside invite failed:", e.message);
+              });
+            }
+          });
+        }
       }
 
       const updated = await tx.query.requests.findFirst({
         where: eq(schema.requests.id, request.id),
-        with: { assignments: true },
+        with: { assignments: true, outsideAssignments: true },
       });
       return attachDerived(updated);
     };
@@ -684,7 +795,14 @@ class RequestService {
       const allAssignments = await tx.query.requestAssignments.findMany({
         where: eq(schema.requestAssignments.requestId, request.id),
       });
-      const effectiveStatus = computeRequestStatus(allAssignments);
+      const allOutsideAssignments =
+        await tx.query.outsideRequestAssignments.findMany({
+          where: eq(schema.outsideRequestAssignments.requestId, request.id),
+        });
+      const effectiveStatus = computeRequestStatus(
+        allAssignments,
+        allOutsideAssignments,
+      );
 
       if (effectiveStatus === "approved") {
         // Advance one stage, using the same skip-empty-multi-approval rules.
@@ -775,7 +893,7 @@ class RequestService {
 
       const updated = await tx.query.requests.findFirst({
         where: eq(schema.requests.id, request.id),
-        with: { assignments: true },
+        with: { assignments: true, outsideAssignments: true },
       });
 
       const liveInstance = await tx.query.workflowInstances.findFirst({

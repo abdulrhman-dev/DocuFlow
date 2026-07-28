@@ -1,9 +1,3 @@
-/**
- * Prefiller for "طلب تحديد الإشراف على رسالة الماجستير".
- * Given a fully-loaded `instance` and the `creatorUser`, produces the initial
- * `Document.data` object that matches the template's JSON schema.
- */
-
 function fullName(u) {
   if (!u) return "";
   return `${u.firstName || ""} ${u.lastName || ""}`.trim();
@@ -23,25 +17,35 @@ function preSupervisorFromUser(u) {
   };
 }
 
-/**
- * `instance` must be preloaded with:
- *   department, student, professors -> user
- * `creatorUser` is the user creating the request (needed for supervisors list).
- */
+function preSupervisorFromOutside(o) {
+  const suffix = o?.isIndustrial ? " (مهني)" : " (خارجي)";
+  return {
+    name: `${fullName(o)}${suffix}`,
+    degreeAndInstitution: o?.academicDegreeAndInstitution || "",
+  };
+}
+
 function buildInitialData({ instance, creatorUser }) {
   const supervisorSet = new Map();
 
-  // Instance-included extra professors first
+  // instance-included internal professors
   for (const p of instance?.professors || []) {
     const u = p?.user || null;
     if (!u) continue;
-    supervisorSet.set(u.id, preSupervisorFromUser(u));
+    supervisorSet.set(`u:${u.id}`, preSupervisorFromUser(u));
   }
-  // Then the creator (as the primary supervisor)
+  // creator as primary supervisor
   if (creatorUser) {
-    if (!supervisorSet.has(creatorUser.id)) {
-      supervisorSet.set(creatorUser.id, preSupervisorFromUser(creatorUser));
+    const key = `u:${creatorUser.id}`;
+    if (!supervisorSet.has(key)) {
+      supervisorSet.set(key, preSupervisorFromUser(creatorUser));
     }
+  }
+  // instance-included OUTSIDE supervisors
+  for (const ox of instance?.outsideSupervisors || []) {
+    const o = ox?.outsideSupervisor || null;
+    if (!o) continue;
+    supervisorSet.set(`o:${o.email}`, preSupervisorFromOutside(o));
   }
 
   const supervisors = Array.from(supervisorSet.values());
@@ -76,9 +80,8 @@ module.exports = {
     if (
       typeof fileUrl === "string" &&
       fileUrl.endsWith("supervision-request.docx")
-    ) {
+    )
       return true;
-    }
     if (title === "طلب تحديد الإشراف على رسالة الماجستير") return true;
     return false;
   },
