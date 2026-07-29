@@ -15,6 +15,13 @@
       "when": 1785266458761,
       "tag": "0001_wooden_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785339453195,
+      "tag": "0002_orange_hercules",
+      "breakpoints": true
     }
   ]
 }

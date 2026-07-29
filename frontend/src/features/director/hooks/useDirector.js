@@ -4,6 +4,7 @@ import {
   getDirectorInstance,
   approveDirectorInstances,
   rejectDirectorInstances,
+  approveDirectorInstancesWithOtp,
 } from "../services/director";
 import { translator as t } from "@data/translations/ar";
 
@@ -19,7 +20,10 @@ export function useDirectorInstance(id) {
 export function useApproveDirector() {
   const qc = useQueryClient();
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: ({ ids, file }) => approveDirectorInstances(ids, file),
+    mutationFn: ({ ids, file, otp }) => {
+      if (otp) return approveDirectorInstancesWithOtp(ids, otp);
+      return approveDirectorInstances(ids, file);
+    },
     onSuccess: () => {
       toast.success(t.director.approved);
       qc.invalidateQueries({ queryKey: ["director-instances-search"] });

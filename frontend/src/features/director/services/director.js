@@ -49,3 +49,12 @@ export async function rejectDirectorInstances(instanceIds, rejectionReason) {
   });
   return data?.data;
 }
+
+export async function approveDirectorInstancesWithOtp(instanceIds, otp) {
+  const data = await apiRequest(`/director/instance/approve`, {
+    method: "POST",
+    body: { instanceIds, otp },
+    token: tk(),
+  });
+  return data?.data;
+}

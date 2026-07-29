@@ -20,6 +20,7 @@ if (process.env.MODE === "DEV") app.use(morgan("dev"));
 
 app.use("/avatars", express.static("public/static/avatars"));
 app.use("/static/approvals", express.static("public/static/approvals"));
+app.use("/static/otp", express.static("public/static/otp"));
 
 app.use(cors(corOptions));
 app.use(express.json());

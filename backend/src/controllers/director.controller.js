@@ -1,5 +1,6 @@
 const asyncDec = require("../utils/asyncDec");
 const DirectorService = require("../services/director.service");
+const OtpService = require("../services/otp.service");
 
 async function search(req, res) {
   const instances = await DirectorService.search({
@@ -21,9 +22,12 @@ async function getInstance(req, res) {
 
 async function approve(req, res) {
   const instanceIds = JSON.parse(req.body.instanceIds || "[]");
-  const approvalFile = req.file
-    ? `/static/approvals/${req.file.filename}`
-    : null;
+  let approvalFile = null;
+  if (req.file) {
+    approvalFile = `/static/approvals/${req.file.filename}`;
+  } else if (req.body.otp) {
+    approvalFile = await OtpService.verifyAndConsume(req.body.otp);
+  }
   const result = await DirectorService.approve(
     instanceIds,
     approvalFile,

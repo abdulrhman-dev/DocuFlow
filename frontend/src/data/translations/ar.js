@@ -152,6 +152,11 @@ export const translator = {
     idsHint:
       'يمكنك إدخال عدة أرقام مفصولة بفواصل، ثم اضغط "إضافة كل النتائج" لإضافتها جميعًا.',
     addAllMatches: "إضافة كل النتائج",
+    approvalMode: "طريقة الاعتماد",
+    approvalModeFile: "رفع ملف",
+    approvalModeOtp: "إدخال رمز (OTP)",
+    otpPlaceholder: "أدخل رمز الاعتماد المكون من 6 أرقام",
+    otpHint: "احصل على الرمز من تطبيق كاميرا الاعتماد بعد التقاط صورة",
   },
 
   user: {

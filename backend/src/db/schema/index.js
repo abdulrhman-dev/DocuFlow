@@ -19,4 +19,5 @@ module.exports = {
   ...require("./outside_request_assignment"),
   ...require("./outside_supervised_students"),
   ...require("./instance_outside_supervisor"),
+  ...require("./otp_record"),
 };

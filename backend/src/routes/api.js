@@ -15,6 +15,7 @@ const affairsRouter = require("./affairs.route");
 const directorRouter = require("./director.route");
 const outsideSupervisorRouter = require("./outside-supervisor.route");
 const outsideRespondRouter = require("./outside-respond.route");
+const otpRouter = require("./otp.route");
 
 const apiRouter = express.Router();
 
@@ -33,5 +34,6 @@ apiRouter.use("/user", userRouter);
 apiRouter.use("/plan", planRouter);
 apiRouter.use("/affairs", affairsRouter);
 apiRouter.use("/director", directorRouter);
+apiRouter.use("/otp", otpRouter);
 
 module.exports = apiRouter;

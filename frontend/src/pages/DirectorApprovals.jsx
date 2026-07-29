@@ -7,6 +7,7 @@ import {
     HiOutlineDocumentText,
     HiOutlineXMark,
     HiOutlineXCircle,
+    HiOutlineKey,
 } from "react-icons/hi2";
 
 import Heading from "@components/Heading";
@@ -59,7 +60,6 @@ const FormSection = styled.div`
   align-items: start;
   height: 90%;
 
-
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
   }
@@ -80,8 +80,6 @@ const FieldLabel = styled.label`
   margin-bottom: 0.6rem;
 `;
 
-/* Search row: the autocomplete grows to fill the space, the mode select
-   sits next to it. On narrow screens they stack. */
 const SearchRow = styled.div`
   display: grid;
   grid-template-columns: 1fr auto;
@@ -117,7 +115,6 @@ const SelectionStack = styled.div`
   overflow-y: auto;
   max-height: 58rem;
   background-color: var(--color-grey-100);
-  padting: 1rem;
   padding: 1rem;
   border-radius: 0.7rem;
 `;
@@ -135,7 +132,91 @@ const ButtonRow = styled.div`
   margin-top: auto;
 `;
 
-/* ---------- drop zone (unchanged) ---------- */
+/* ---------- approval mode toggle ---------- */
+
+const ApprovalModeRow = styled.div`
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.2rem;
+`;
+
+const ModeTab = styled.button`
+  border: 1px solid var(--color-grey-200);
+  background: ${({ $active }) =>
+        $active ? "var(--color-brand-600)" : "var(--color-grey-0)"};
+  color: ${({ $active }) =>
+        $active ? "var(--color-grey-0)" : "var(--color-grey-700)"};
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+
+  & svg {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+`;
+
+/* ---------- OTP input ---------- */
+
+const OtpInputWrap = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1.8rem 2rem;
+  border: 2px dashed var(--color-grey-300);
+  border-radius: 14px;
+  background: var(--color-grey-50);
+  align-items: center;
+`;
+
+const OtpIcon = styled.div`
+  width: 5.6rem;
+  height: 5.6rem;
+  border-radius: 50%;
+  background: var(--color-grey-100);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-600);
+  & svg {
+    width: 3rem;
+    height: 3rem;
+  }
+`;
+
+const OtpInput = styled.input`
+  width: 100%;
+  max-width: 34rem;
+  text-align: center;
+  letter-spacing: 0.6rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 1rem 1.2rem;
+  border: 2px solid var(--color-grey-300);
+  border-radius: 10px;
+  background: var(--color-grey-0);
+  color: var(--color-grey-800);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+`;
+
+const OtpHint = styled.small`
+  color: var(--color-grey-500);
+  font-size: 1.2rem;
+  text-align: center;
+`;
+
+/* ---------- drop zone ---------- */
 
 const Dropzone = styled.label`
   position: relative;
@@ -291,10 +372,13 @@ function validateFile(f) {
 /* ---------- page ---------- */
 
 function DirectorApprovals() {
-    const [selectedInstances, setSelectedInstances] = useState([]); // full objects
+    const [selectedInstances, setSelectedInstances] = useState([]);
     const [file, setFile] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
+
+    const [approvalMode, setApprovalMode] = useState("file");
+    const [otp, setOtp] = useState("");
 
     const {
         instances: results,
@@ -307,8 +391,6 @@ function DirectorApprovals() {
     const { approve, isPending: isApproving } = useApproveDirector();
     const { reject, isPending: isRejecting } = useRejectDirector();
 
-    // Filter already-picked ids out of the autocomplete's option list so the
-    // user can't select the same instance twice.
     const options = useMemo(() => {
         const picked = new Set(selectedInstances.map((i) => i.id));
         return (results || []).filter((r) => !picked.has(r.id));
@@ -322,7 +404,6 @@ function DirectorApprovals() {
         setSelectedInstances((prev) => [...prev, inst]);
     }
 
-    // Bulk-add: used for the ids mode "add all matches" flow.
     function addManyInstances(list) {
         if (!Array.isArray(list) || !list.length) return;
         setSelectedInstances((prev) => {
@@ -371,31 +452,37 @@ function DirectorApprovals() {
     async function handleApprove(e) {
         e?.preventDefault?.();
         if (!selectedIds.length) return toast.error(t.director.selectAtLeastOne);
-        if (!file) return toast.error(t.director.approvalFileRequired);
-        await approve({ ids: selectedIds, file });
+
+        if (approvalMode === "otp") {
+            if (!otp.trim()) return toast.error(t.director.otpPlaceholder);
+            await approve({ ids: selectedIds, otp: otp.trim() });
+            setOtp("");
+        } else {
+            if (!file) return toast.error(t.director.approvalFileRequired);
+            await approve({ ids: selectedIds, file });
+            setFile(null);
+        }
         setSelectedInstances([]);
-        setFile(null);
     }
 
-    const canApprove = selectedIds.length > 0 && !!file;
+    const canApprove =
+        selectedIds.length > 0 &&
+        (approvalMode === "otp" ? !!otp.trim() : !!file);
 
     /* -------- mode change handler -------- */
     function handleModeChange(e) {
         const next = e.target.value === "ids" ? "ids" : "text";
         setMode(next);
-        setQuery(""); // reset query when switching modes to avoid stale queries
+        setQuery("");
     }
 
-    /* -------- "ids" mode: add all matches with one click -------- */
     function handleAddAllIds() {
         if (!results?.length) {
             toast.error(t.director.empty);
             return;
         }
         addManyInstances(results);
-        toast.success(
-            `${t.director.selected}: +${results.length}`,
-        );
+        toast.success(`${t.director.selected}: +${results.length}`);
     }
 
     return (
@@ -403,7 +490,7 @@ function DirectorApprovals() {
             <Content>
                 <StyledHeading as="h1">{t.director.inbox}</StyledHeading>
 
-                <FormSection >
+                <FormSection>
                     {/* ---------- Left column: search + selected cards ---------- */}
                     <Column>
                         <div>
@@ -492,62 +579,114 @@ function DirectorApprovals() {
                         </div>
                     </Column>
 
-                    {/* ---------- Right column: description + drop zone ---------- */}
+                    {/* ---------- Right column: approval mode + input ---------- */}
                     <Column>
-
-
+                        {/* Approval mode toggle */}
                         <div>
-                            <FieldLabel>{t.director.approvalFile}</FieldLabel>
-                            <Dropzone
-                                htmlFor="approvalFile"
-                                $isDragging={isDragging}
-                                $hasFile={!!file}
-                                onDragOver={onDragOver}
-                                onDragEnter={onDragOver}
-                                onDragLeave={onDragLeave}
-                                onDrop={onDrop}
-                            >
-                                <HiddenInput
-                                    id="approvalFile"
-                                    ref={fileInputRef}
-                                    accept={ACCEPTED_MIME.join(",")}
-                                    onChange={onInputChange}
-                                />
-                                {!file ? (
-                                    <>
-                                        <DropIcon>
-                                            <HiOutlineCloudArrowUp />
-                                        </DropIcon>
-                                        <DropText>
-                                            <DropTitle>{t.director.dropzoneTitle}</DropTitle>
-                                            <DropHint>{t.director.dropzoneHint}</DropHint>
-                                            <DropHint>{t.director.approvalFileHint}</DropHint>
-                                        </DropText>
-                                    </>
-                                ) : (
-                                    <>
-                                        <FilePreview>
-                                            <HiOutlineDocumentText />
-                                            <FileMeta>
-                                                <FileName>{file.name}</FileName>
-                                                <FileSize>{humanSize(file.size)}</FileSize>
-                                            </FileMeta>
-                                        </FilePreview>
-                                        <RemoveBtn
-                                            type="button"
-                                            aria-label="remove"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setFile(null);
-                                            }}
-                                        >
-                                            <HiOutlineXMark />
-                                        </RemoveBtn>
-                                    </>
-                                )}
-                            </Dropzone>
+                            <FieldLabel>{t.director.approvalMode}</FieldLabel>
+                            <ApprovalModeRow>
+                                <ModeTab
+                                    type="button"
+                                    $active={approvalMode === "file"}
+                                    onClick={() => setApprovalMode("file")}
+                                >
+                                    <HiOutlineCloudArrowUp />
+                                    {t.director.approvalModeFile}
+                                </ModeTab>
+                                <ModeTab
+                                    type="button"
+                                    $active={approvalMode === "otp"}
+                                    onClick={() => setApprovalMode("otp")}
+                                >
+                                    <HiOutlineKey />
+                                    {t.director.approvalModeOtp}
+                                </ModeTab>
+                            </ApprovalModeRow>
                         </div>
+
+                        {/* File mode — drop zone (existing) */}
+                        {approvalMode === "file" && (
+                            <div>
+                                <FieldLabel>{t.director.approvalFile}</FieldLabel>
+                                <Dropzone
+                                    htmlFor="approvalFile"
+                                    $isDragging={isDragging}
+                                    $hasFile={!!file}
+                                    onDragOver={onDragOver}
+                                    onDragEnter={onDragOver}
+                                    onDragLeave={onDragLeave}
+                                    onDrop={onDrop}
+                                >
+                                    <HiddenInput
+                                        id="approvalFile"
+                                        ref={fileInputRef}
+                                        accept={ACCEPTED_MIME.join(",")}
+                                        onChange={onInputChange}
+                                    />
+                                    {!file ? (
+                                        <>
+                                            <DropIcon>
+                                                <HiOutlineCloudArrowUp />
+                                            </DropIcon>
+                                            <DropText>
+                                                <DropTitle>{t.director.dropzoneTitle}</DropTitle>
+                                                <DropHint>{t.director.dropzoneHint}</DropHint>
+                                                <DropHint>{t.director.approvalFileHint}</DropHint>
+                                            </DropText>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FilePreview>
+                                                <HiOutlineDocumentText />
+                                                <FileMeta>
+                                                    <FileName>{file.name}</FileName>
+                                                    <FileSize>{humanSize(file.size)}</FileSize>
+                                                </FileMeta>
+                                            </FilePreview>
+                                            <RemoveBtn
+                                                type="button"
+                                                aria-label="remove"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setFile(null);
+                                                }}
+                                            >
+                                                <HiOutlineXMark />
+                                            </RemoveBtn>
+                                        </>
+                                    )}
+                                </Dropzone>
+                            </div>
+                        )}
+
+                        {/* OTP mode — code input */}
+                        {approvalMode === "otp" && (
+                            <div>
+                                <FieldLabel>{t.director.approvalModeOtp}</FieldLabel>
+                                <OtpInputWrap>
+                                    <OtpIcon>
+                                        <HiOutlineKey />
+                                    </OtpIcon>
+                                    <OtpInput
+                                        type="text"
+                                        value={otp}
+                                        onChange={(e) =>
+                                            setOtp(
+                                                e.target.value
+                                                    .replace(/\D/g, "")
+                                                    .slice(0, 6)
+                                            )
+                                        }
+                                        placeholder={t.director.otpPlaceholder}
+                                        maxLength={6}
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                    />
+                                    <OtpHint>{t.director.otpHint}</OtpHint>
+                                </OtpInputWrap>
+                            </div>
+                        )}
 
                         <ButtonRow>
                             <Button
@@ -583,12 +722,8 @@ function DirectorApprovals() {
                             </Modal>
                         </ButtonRow>
                     </Column>
-
-
                 </FormSection>
             </Content>
-
-
         </Container>
     );
 }
