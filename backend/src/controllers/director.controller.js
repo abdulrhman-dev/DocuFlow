@@ -21,7 +21,7 @@ async function getInstance(req, res) {
 }
 
 async function approve(req, res) {
-  const instanceIds = JSON.parse(req.body.instanceIds || "[]");
+  const instanceIds = req.body.instanceIds || [];
   let approvalFile = null;
   if (req.file) {
     approvalFile = `/static/approvals/${req.file.filename}`;

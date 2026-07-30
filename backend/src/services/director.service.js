@@ -140,6 +140,7 @@ class DirectorService {
   }
 
   static async approve(instanceIds, approvalFile, director) {
+    console.log(instanceIds);
     const ids = (instanceIds || []).map((n) => Number(n)).filter(Boolean);
     if (!ids.length) throw new AppError(ar.director.selectAtLeastOne, 400);
     if (!approvalFile)
